@@ -355,6 +355,12 @@ function generateDiagramNarrative(mermaidSource, metadata) {
     case 'classDiagram':
       narrative += generateClassDiagramNarrative(mermaidSource);
       break;
+    case 'gantt':
+      narrative += generateGanttNarrative(mermaidSource);
+      break;
+    case 'journey':
+      narrative += generateUserJourneyNarrative(mermaidSource);
+      break;
     default:
       narrative += `<p>This is a ${diagramType} diagram.</p>`;
   }
@@ -379,6 +385,8 @@ function detectDiagramType(source) {
     return 'sequenceDiagram';
   } else if (firstLine.startsWith('gantt')) {
     return 'gantt';
+  } else if (firstLine.startsWith('journey')) {
+    return 'journey';
   }
   
   return 'unknown';
@@ -576,6 +584,164 @@ function generateClassDiagramNarrative(source) {
       narrative += `<li><strong>${escapeHtml(rel.from)}</strong> ${relType} <strong>${escapeHtml(rel.to)}</strong></li>\n`;
     });
     narrative += '</ul>\n';
+  }
+  
+  return narrative;
+}
+
+/**
+ * Generate narrative for gantt diagrams
+ * Based on https://mermaid.js.org/syntax/gantt.html
+ */
+function generateGanttNarrative(source) {
+  let narrative = '<p><strong>Project Timeline:</strong></p>\n';
+  
+  const lines = source.split('\n')
+    .filter(line => !line.trim().startsWith('%%'))
+    .filter(line => line.trim().length > 0);
+  
+  // Extract title
+  const titleLine = lines.find(l => l.trim().startsWith('title'));
+  if (titleLine) {
+    const title = titleLine.replace(/title\s+/, '').trim();
+    narrative += `<p><em>${escapeHtml(title)}</em></p>\n`;
+  }
+  
+  // Parse sections and tasks
+  const sections = [];
+  let currentSection = null;
+  
+  lines.forEach(line => {
+    const trimmed = line.trim();
+    
+    // Section header
+    const sectionMatch = trimmed.match(/^section\s+(.+)$/);
+    if (sectionMatch) {
+      currentSection = {
+        name: sectionMatch[1].trim(),
+        tasks: []
+      };
+      sections.push(currentSection);
+      return;
+    }
+    
+    // Task: "Task name : [tags,] [start,] [end/duration]"
+    // Skip keywords
+    if (trimmed.match(/^(gantt|title|dateFormat|axisFormat|excludes|tickInterval|weekend)/)) {
+      return;
+    }
+    
+    const taskMatch = trimmed.match(/^([^:]+)\s*:\s*(.+)$/);
+    if (taskMatch && currentSection) {
+      const taskName = taskMatch[1].trim();
+      const params = taskMatch[2].trim();
+      
+      // Check for tags
+      const tags = [];
+      if (params.includes('milestone')) tags.push('milestone');
+      if (params.includes('done')) tags.push('completed');
+      if (params.includes('active')) tags.push('in progress');
+      if (params.includes('crit')) tags.push('critical');
+      
+      currentSection.tasks.push({
+        name: taskName,
+        tags: tags
+      });
+    }
+  });
+  
+  // Generate section narrative
+  if (sections.length > 0) {
+    narrative += '<ul>\n';
+    sections.forEach(section => {
+      narrative += `<li><strong>${escapeHtml(section.name)}</strong>`;
+      if (section.tasks.length > 0) {
+        narrative += '\n<ul>\n';
+        section.tasks.forEach(task => {
+          const tagText = task.tags.length > 0 ? ` <em>(${task.tags.join(', ')})</em>` : '';
+          narrative += `<li>${escapeHtml(task.name)}${tagText}</li>\n`;
+        });
+        narrative += '</ul>\n';
+      }
+      narrative += '</li>\n';
+    });
+    narrative += '</ul>\n';
+  }
+  
+  return narrative;
+}
+
+/**
+ * Generate narrative for user journey diagrams
+ * Based on https://mermaid.js.org/syntax/userJourney.html
+ */
+function generateUserJourneyNarrative(source) {
+  let narrative = '<p><strong>User Journey:</strong></p>\n';
+  
+  const lines = source.split('\n')
+    .filter(line => !line.trim().startsWith('%%'))
+    .filter(line => line.trim().length > 0);
+  
+  // Extract title
+  const titleLine = lines.find(l => l.trim().startsWith('title'));
+  if (titleLine) {
+    const title = titleLine.replace(/title\s+/, '').trim();
+    narrative += `<p><em>${escapeHtml(title)}</em></p>\n`;
+  }
+  
+  // Parse sections and tasks
+  // Format: "Task name: <score>: <actors>"
+  const sections = [];
+  let currentSection = null;
+  
+  lines.forEach(line => {
+    const trimmed = line.trim();
+    
+    // Section header
+    const sectionMatch = trimmed.match(/^section\s+(.+)$/);
+    if (sectionMatch) {
+      currentSection = {
+        name: sectionMatch[1].trim(),
+        steps: []
+      };
+      sections.push(currentSection);
+      return;
+    }
+    
+    // Task: "Task name: score: actors"
+    if (trimmed.match(/^(journey|title)/)) return;
+    
+    const taskMatch = trimmed.match(/^([^:]+)\s*:\s*(\d+)\s*:\s*(.+)$/);
+    if (taskMatch && currentSection) {
+      const taskName = taskMatch[1].trim();
+      const score = parseInt(taskMatch[2], 10);
+      const actors = taskMatch[3].split(',').map(a => a.trim());
+      
+      currentSection.steps.push({
+        name: taskName,
+        score: score,
+        actors: actors
+      });
+    }
+  });
+  
+  // Generate section narrative
+  if (sections.length > 0) {
+    sections.forEach(section => {
+      narrative += `<p><strong>${escapeHtml(section.name)}:</strong></p>\n`;
+      if (section.steps.length > 0) {
+        narrative += '<ol>\n';
+        section.steps.forEach(step => {
+          // Satisfaction emoji based on score (1-5)
+          const satisfaction = step.score >= 4 ? '😊 positive' : 
+                             step.score >= 3 ? '😐 neutral' : 
+                             '😞 negative';
+          const actorText = step.actors.length > 0 ? ` (by ${step.actors.join(', ')})` : '';
+          narrative += `<li><strong>${escapeHtml(step.name)}</strong>${escapeHtml(actorText)} — <em>${satisfaction} experience (${step.score}/5)</em></li>\n`;
+        });
+        narrative += '</ol>\n';
+      }
+    });
   }
   
   return narrative;
