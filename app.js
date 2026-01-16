@@ -43,40 +43,53 @@ const STATE = {
 async function initializeApp() {
   console.log('A11y Mermaid Studio initializing...');
   
-  // Load required libraries from CDN
-  await Promise.all([
-    loadMermaid(),
-    loadXmlFormatter(),
-    loadSVGO()
-  ]);
+  try {
+    // Load required libraries from CDN
+    await Promise.all([
+      loadMermaid(),
+      loadXmlFormatter(),
+      loadSVGO()
+    ]);
+    console.log('[Init] Libraries loaded successfully');
 
-  // Seed empty highlight layer
-  renderSvgHighlight('');
-  
-  // Set up event listeners
-  attachEventListeners();
-  setupSplitter();
-  initializeThemeToggle();
-  
-  // Load any previously saved diagram from localStorage
-  restoreLastDiagram();
+    // Seed empty highlight layer
+    renderSvgHighlight('');
+    
+    // Set up event listeners
+    attachEventListeners();
+    setupSplitter();
+    initializeThemeToggle();
+    console.log('[Init] Event listeners and theme initialized');
+    
+    // Load any previously saved diagram from localStorage
+    restoreLastDiagram();
 
-  // If editor is empty after restore, load a random example automatically
-  const sourceInput = document.getElementById('mermaid-source');
-  if (sourceInput && !sourceInput.value.trim()) {
-    try {
-      await loadRandomExampleIntoEditor();
-      // Auto-render after loading example
-      await validateAndRender();
-    } catch (e) {
-      console.warn('Could not load example:', e);
+    // If editor is empty after restore, load a random example automatically
+    const sourceInput = document.getElementById('mermaid-source');
+    if (sourceInput && !sourceInput.value.trim()) {
+      console.log('[Init] Editor empty, loading random example...');
+      try {
+        await loadRandomExampleIntoEditor();
+        console.log('[Init] Example loaded, rendering...');
+        // Auto-render after loading example
+        const renderOk = await validateAndRender();
+        console.log('[Init] validateAndRender returned:', renderOk);
+      } catch (e) {
+        console.error('[Init] Error loading example:', e);
+        showError(`Failed to load example: ${e.message}`);
+      }
+    } else {
+      // Render whatever we restored so the previews are in sync
+      console.log('[Init] Content restored, rendering...');
+      const renderOk = await validateAndRender();
+      console.log('[Init] validateAndRender returned:', renderOk);
     }
-  } else {
-    // Render whatever we restored so the previews are in sync
-    await validateAndRender();
+    
+    console.log('Application ready');
+  } catch (error) {
+    console.error('[Init] Fatal initialization error:', error);
+    showError(`Initialization failed: ${error.message}`);
   }
-  
-  console.log('Application ready');
 }
 
 /**
@@ -945,19 +958,25 @@ async function validateAndRender() {
   const sourceInput = document.getElementById('mermaid-source');
   const editorError = document.getElementById('editor-error');
   
-  if (!sourceInput) return;
+  if (!sourceInput) {
+    console.error('[validateAndRender] sourceInput element not found');
+    return false;
+  }
   
   let mermaidSource = sourceInput.value.trim();
+  console.log('[validateAndRender] Source length:', mermaidSource.length);
   
   if (!mermaidSource) {
     // Empty editor: clear previews and error
+    console.log('[validateAndRender] Empty source, clearing preview');
     editorError.textContent = '';
     editorError.classList.remove('show');
     displayPreview('');
-    return;
+    return false;
   }
   
   try {
+    console.log('[validateAndRender] Ensuring metadata...');
     // Ensure required metadata; auto-insert if missing
     const ensured = ensureMetadata(mermaidSource);
     mermaidSource = ensured.source;
@@ -969,15 +988,21 @@ async function validateAndRender() {
     }
     
     // Render Mermaid
+    console.log('[validateAndRender] Calling renderMermaidDiagram...');
     const svg = await renderMermaidDiagram(mermaidSource);
+    console.log('[validateAndRender] Got SVG from Mermaid, length:', svg.length);
     
     // Apply accessibility transformations
+    console.log('[validateAndRender] Applying accessibility transformations...');
     const accessibleSvg = applyAccessibilityTransformations(svg, metadata);
+    console.log('[validateAndRender] Accessibility transformations complete, SVG length:', accessibleSvg.length);
     
     // Display preview
+    console.log('[validateAndRender] Calling displayPreview...');
     displayPreview(accessibleSvg);
     
     // Generate and display narrative
+    console.log('[validateAndRender] Generating narrative...');
     generateDiagramNarrative(mermaidSource, metadata);
     
     // Store current state
@@ -986,9 +1011,11 @@ async function validateAndRender() {
     // Clear any previous error
     editorError.textContent = '';
     editorError.classList.remove('show');
+    console.log('[validateAndRender] Complete, returning true');
     return true;
   } catch (error) {
     // Show subtle error in editor area
+    console.error('[validateAndRender] Error during rendering:', error);
     editorError.textContent = error.message;
     editorError.classList.add('show');
     return false;
