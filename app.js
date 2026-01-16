@@ -136,7 +136,10 @@ async function loadSVGO() {
  */
 async function renderMermaidDiagram(mermaidSource) {
   try {
+    console.log('[Mermaid] Rendering diagram from source, length:', mermaidSource.length);
     const { svg } = await window.mermaid.render('mermaid-diagram', mermaidSource);
+    console.log('[Mermaid] Rendered SVG length:', svg.length);
+    console.log('[Mermaid] SVG preview:', svg.substring(0, 200) + '...');
     return svg;
   } catch (error) {
     console.error('Mermaid render error:', error);
@@ -293,8 +296,13 @@ function attachEventListeners() {
       randomBtn.disabled = true;
       randomBtn.setAttribute('aria-busy', 'true');
       try {
+        console.log('[Random] Starting random example load...');
         await loadRandomExampleIntoEditor();
+        console.log('[Random] Example loaded into editor, validating and rendering...');
         const ok = await validateAndRender();
+        console.log('[Random] validateAndRender returned:', ok);
+        console.log('[Random] STATE.currentSvg length:', STATE.currentSvg?.length || 0);
+        console.log('[Random] STATE.beautifiedSvg length:', STATE.beautifiedSvg?.length || 0);
         if (ok) {
           showToast('Loaded a random example.', 'success');
         } else {
@@ -729,21 +737,30 @@ function optimizeSvg(svgString) {
 function updateSvgDisplay() {
   const svgCode = document.getElementById('svg-code');
   
-  if (!svgCode || !STATE.currentSvg) return;
+  if (!svgCode || !STATE.currentSvg) {
+    console.log('[updateSvgDisplay] Skipping: svgCode=', !!svgCode, 'STATE.currentSvg length=', STATE.currentSvg?.length);
+    return;
+  }
+  
+  console.log('[updateSvgDisplay] Updating SVG code display, STATE.currentSvg length:', STATE.currentSvg.length);
   
   // Generate formatted/optimized versions if not cached
   if (!STATE.beautifiedSvg) {
     STATE.beautifiedSvg = formatSvg(STATE.currentSvg);
+    console.log('[updateSvgDisplay] Generated beautifiedSvg, length:', STATE.beautifiedSvg.length);
   }
   if (!STATE.optimizedSvg) {
     STATE.optimizedSvg = optimizeSvg(STATE.currentSvg);
+    console.log('[updateSvgDisplay] Generated optimizedSvg, length:', STATE.optimizedSvg.length);
   }
   
   // Display based on current mode
   if (STATE.svgMode === 'beautiful') {
     svgCode.value = STATE.beautifiedSvg;
+    console.log('[updateSvgDisplay] Set textarea to beautifiedSvg');
   } else {
     svgCode.value = STATE.optimizedSvg;
+    console.log('[updateSvgDisplay] Set textarea to optimizedSvg');
   }
   
   // Refresh highlighting
@@ -788,12 +805,14 @@ function updateSizeMetrics() {
  * Display SVG preview in light and dark modes
  */
 function displayPreview(svgString) {
+  console.log('[displayPreview] Called with SVG length:', svgString.length);
   const lightPreview = document.getElementById('preview-light');
   const darkPreview = document.getElementById('preview-dark');
   
   // Always render fresh—previews are never cached; always written directly to DOM
   if (lightPreview) {
     lightPreview.innerHTML = svgString;
+    console.log('[displayPreview] Updated light preview');
   }
   
   if (darkPreview) {
@@ -801,6 +820,7 @@ function displayPreview(svgString) {
     // Add dark mode class for styling
     const svg = darkPreview.querySelector('svg');
     if (svg) svg.classList.add('dark-mode');
+    console.log('[displayPreview] Updated dark preview');
   }
 
   // Store raw SVG and clear cached versions
@@ -808,6 +828,7 @@ function displayPreview(svgString) {
   STATE.beautifiedSvg = '';
   STATE.optimizedSvg = '';
   
+  console.log('[displayPreview] Stored in STATE, calling updateSvgDisplay');
   // Update the SVG code display based on current mode
   updateSvgDisplay();
 }
