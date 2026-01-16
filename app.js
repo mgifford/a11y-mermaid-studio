@@ -380,6 +380,9 @@ function generateDiagramNarrative(mermaidSource, metadata) {
     case 'journey':
       narrative += generateUserJourneyNarrative(mermaidSource);
       break;
+    case 'mindmap':
+      narrative += generateMindmapNarrative(mermaidSource);
+      break;
     default:
       narrative += `<p>This is a ${diagramType} diagram.</p>`;
   }
@@ -406,6 +409,8 @@ function detectDiagramType(source) {
     return 'gantt';
   } else if (firstLine.startsWith('journey')) {
     return 'journey';
+  } else if (firstLine.startsWith('mindmap')) {
+    return 'mindmap';
   }
   
   return 'unknown';
@@ -761,6 +766,97 @@ function generateUserJourneyNarrative(source) {
         narrative += '</ol>\n';
       }
     });
+  }
+  
+  return narrative;
+}
+
+/**
+ * Generate narrative for mind map diagrams
+ * Parses hierarchical structure with indentation levels
+ */
+function generateMindmapNarrative(source) {
+  let narrative = '<p><strong>Mind Map Structure:</strong></p>\n';
+  
+  const lines = source.split('\n')
+    .filter(line => !line.trim().startsWith('%%'))
+    .filter(line => line.trim().length > 0)
+    .slice(1); // Skip "mindmap" declaration
+  
+  // Build tree structure
+  const tree = [];
+  const stack = []; // Stack to track parent nodes at each level
+  
+  lines.forEach(line => {
+    // Count leading spaces/indentation
+    const indentMatch = line.match(/^(\s*)/);
+    const indentLevel = indentMatch ? Math.floor(indentMatch[1].length / 2) : 0;
+    
+    const text = line.trim();
+    if (!text) return;
+    
+    // Remove shape markers for display text
+    let displayText = text
+      .replace(/^\w+\[/, '').replace(/\]$/, '') // Square brackets
+      .replace(/^\w+\(/, '').replace(/\)$/, '') // Parentheses
+      .replace(/^\w+\{\{/, '').replace(/\}\}$/, '') // Hexagon
+      .replace(/^\w+\(\(/, '').replace(/\)\)$/, '') // Circle
+      .replace(/^\w+\)\)/, '').replace(/\(\($/, '') // Bang
+      .replace(/^\w+\)/, '').replace(/\($/, '') // Cloud
+      .replace(/::icon.*$/i, ''); // Remove icon syntax
+    
+    const node = {
+      text: displayText.trim(),
+      level: indentLevel,
+      children: []
+    };
+    
+    // Find parent at previous level
+    while (stack.length > indentLevel) {
+      stack.pop();
+    }
+    
+    if (stack.length > 0) {
+      stack[stack.length - 1].children.push(node);
+    } else {
+      tree.push(node);
+    }
+    
+    stack.push(node);
+  });
+  
+  // Render tree as nested list
+  function renderNode(node, depth = 0) {
+    let html = '';
+    if (depth === 0) {
+      html += `<p><strong>${escapeHtml(node.text)}</strong></p>\n`;
+      if (node.children.length > 0) {
+        html += '<ul>\n';
+        node.children.forEach(child => {
+          html += renderNode(child, depth + 1);
+        });
+        html += '</ul>\n';
+      }
+    } else {
+      html += `<li>${escapeHtml(node.text)}\n`;
+      if (node.children.length > 0) {
+        html += '<ul>\n';
+        node.children.forEach(child => {
+          html += renderNode(child, depth + 1);
+        });
+        html += '</ul>\n';
+      }
+      html += '</li>\n';
+    }
+    return html;
+  }
+  
+  if (tree.length > 0) {
+    tree.forEach(rootNode => {
+      narrative += renderNode(rootNode);
+    });
+  } else {
+    narrative += '<p><em>Empty mind map structure</em></p>\n';
   }
   
   return narrative;

@@ -3,7 +3,7 @@
     { "id": "flowchart-basic", "title": "Flowchart (Basic)", "file": "flowchart-basic.mmd", "type": "flowchart" },
     { "id": "sequence-basic", "title": "Sequence Diagram", "file": "sequence-basic.mmd", "type": "sequence" },
     { "id": "class-basic", "title": "Class Diagram", "file": "class-basic.mmd", "type": "class" },
-    { "id": "state-basic", "title": "State Diagram", "file": "state-basic.mmd", "type": "state" },
+    { "id": "mindmap-basic", "title": "Mind Map", "file": "mindmap-basic.mmd", "type": "mindmap", "narrativeSupport": true },
     { "id": "er-basic", "title": "Entity Relationship", "file": "er-basic.mmd", "type": "er" },
     { "id": "journey-basic", "title": "User Journey", "file": "journey-basic.mmd", "type": "journey" },
     { "id": "journey-workday", "title": "User Journey (Working Day)", "file": "journey-workday.mmd", "type": "journey" },
