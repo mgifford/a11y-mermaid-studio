@@ -67,12 +67,24 @@
         <section class="pane" id="svg-pane" aria-labelledby="svg-code-title">
           <div class="pane-header">
             <h2 id="svg-code-title">SVG Code</h2>
-            <div class="toggle-inline">
-              <label for="edit-svg-toggle" id="edit-svg-label">Enable SVG editing</label>
-              <input id="edit-svg-toggle" type="checkbox" aria-labelledby="edit-svg-label" aria-describedby="edit-svg-desc">
+            <div class="svg-controls">
+              <div class="mode-toggle" role="radiogroup" aria-label="SVG format mode">
+                <label>
+                  <input type="radio" name="svg-mode" value="beautiful" checked aria-label="Beautiful format">
+                  Beautiful
+                </label>
+                <label>
+                  <input type="radio" name="svg-mode" value="optimized" aria-label="Optimized format">
+                  Optimized
+                </label>
+              </div>
+              <div class="toggle-inline">
+                <label for="edit-svg-toggle" id="edit-svg-label">Edit</label>
+                <input id="edit-svg-toggle" type="checkbox" aria-labelledby="edit-svg-label" aria-describedby="edit-svg-desc">
+              </div>
             </div>
           </div>
-          <p class="help-text">Generated accessible SVG. Edits update the preview only (not the Mermaid source).</p>
+          <p class="help-text">Beautiful = readable; Optimized = production-ready. Edits update preview only.</p>
           <span id="edit-svg-desc" class="sr-only">When enabled, you can directly edit the generated SVG code. Changes here will update the preview. This does not sync back to your Mermaid source.</span>
           <textarea id="svg-code" aria-label="Generated accessible SVG code" spellcheck="false" readonly></textarea>
           <div class="button-row">

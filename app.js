@@ -22,6 +22,11 @@ const CONFIG = {
   examplesManifest: './examples/manifest.json',
 };
 
+const STATE = {
+  svgMode: 'beautiful', // 'beautiful' or 'optimized'
+  currentSvg: '', // Raw SVG from Mermaid
+};
+
 /**
  * Initialize the application
  */
@@ -272,6 +277,17 @@ function attachEventListeners() {
       }
     });
   }
+
+  // SVG mode toggle (Beautiful vs Optimized)
+  const modeRadios = document.querySelectorAll('input[name="svg-mode"]');
+  modeRadios.forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      if (e.target.checked) {
+        STATE.svgMode = e.target.value;
+        updateSvgDisplay();
+      }
+    });
+  });
 }
 
 /** Load examples manifest */
@@ -561,6 +577,70 @@ function setupSplitter() {
 }
 
 /**
+ * Format SVG for readability (Beautiful mode)
+ */
+function formatSvg(svgString) {
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(svgString, 'image/svg+xml');
+    const serializer = new XMLSerializer();
+    let formatted = serializer.serializeToString(doc);
+    
+    // Add line breaks and indentation
+    formatted = formatted
+      .replace(/></g, '>\n<')
+      .split('\n')
+      .map((line, i) => {
+        const depth = (line.match(/<\w/g) || []).length - (line.match(/<\//g) || []).length;
+        const indent = '  '.repeat(Math.max(0, depth));
+        return indent + line.trim();
+      })
+      .join('\n');
+    
+    return formatted;
+  } catch (e) {
+    return svgString;
+  }
+}
+
+/**
+ * Optimize SVG for production (Optimized mode)
+ */
+function optimizeSvg(svgString) {
+  try {
+    // Remove unnecessary whitespace and newlines
+    let optimized = svgString
+      .replace(/\s+/g, ' ')
+      .replace(/> </g, '><')
+      .replace(/\s*=\s*/g, '=')
+      .trim();
+    
+    return optimized;
+  } catch (e) {
+    return svgString;
+  }
+}
+
+/**
+ * Update SVG code display based on current mode
+ */
+function updateSvgDisplay() {
+  const svgCode = document.getElementById('svg-code');
+  const editToggle = document.getElementById('edit-svg-toggle');
+  
+  if (!svgCode || !STATE.currentSvg) return;
+  
+  // Don't update if user is editing
+  if (editToggle && editToggle.checked) return;
+  
+  if (STATE.svgMode === 'beautiful') {
+    svgCode.value = formatSvg(STATE.currentSvg);
+  } else {
+    svgCode.value = optimizeSvg(STATE.currentSvg);
+  }
+}
+
+/**
  * Display SVG preview in light and dark modes
  */
 function displayPreview(svgString) {
@@ -578,12 +658,9 @@ function displayPreview(svgString) {
     if (svg) svg.classList.add('dark-mode');
   }
 
-  // Reflect latest SVG code into the code viewer if available and not in edit mode
-  const svgCode = document.getElementById('svg-code');
-  const editToggle = document.getElementById('edit-svg-toggle');
-  if (svgCode && (!editToggle || !editToggle.checked)) {
-    svgCode.value = svgString;
-  }
+  // Store raw SVG and update display based on mode
+  STATE.currentSvg = svgString;
+  updateSvgDisplay();
 }
 
 /**
