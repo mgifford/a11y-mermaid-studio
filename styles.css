@@ -328,6 +328,22 @@ button:disabled {
   font-size: var(--font-size-sm);
 }
 
+/* Editor inline error display */
+.editor-error {
+  margin-top: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: 4px;
+  font-size: var(--font-size-sm);
+  color: var(--color-error);
+  background-color: rgba(203, 36, 49, 0.08);
+  border: 1px solid rgba(203, 36, 49, 0.3);
+  display: none;
+}
+
+.editor-error.show {
+  display: block;
+}
+
 /* Footer */
 footer {
   border-top: 1px solid var(--color-border);

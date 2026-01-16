@@ -43,7 +43,7 @@ async function initializeApp() {
     try {
       await loadRandomExampleIntoEditor();
       // Auto-render after loading example
-      await handleRender();
+      await validateAndRender();
     } catch (e) {
       console.warn('Could not load example:', e);
     }
@@ -207,7 +207,6 @@ function parseColor(color) {
  */
 function attachEventListeners() {
   const sourceInput = document.getElementById('mermaid-source');
-  const renderButton = document.getElementById('render-btn');
   const exportButton = document.getElementById('export-btn');
   const themeToggle = document.getElementById('theme-toggle');
   const shuffleExampleBtn = document.getElementById('shuffle-example-btn');
@@ -215,11 +214,10 @@ function attachEventListeners() {
   const copySvgBtn = document.getElementById('copy-svg-btn');
   const editSvgToggle = document.getElementById('edit-svg-toggle');
   
-  if (renderButton) {
-    renderButton.addEventListener('click', handleRender);
-  }
-  
   if (sourceInput) {
+    // Live validation and rendering on every keystroke
+    sourceInput.addEventListener('input', validateAndRender);
+    // Save to storage on change
     sourceInput.addEventListener('change', () => {
       saveDiagramToStorage(sourceInput.value);
     });
@@ -238,7 +236,8 @@ function attachEventListeners() {
   if (shuffleExampleBtn) {
     shuffleExampleBtn.addEventListener('click', async () => {
       await loadRandomExampleIntoEditor();
-      await handleRender();
+      // Auto-render after loading
+      await validateAndRender();
     });
   }
 
@@ -261,7 +260,6 @@ function attachEventListeners() {
       const parsed = parseSvgSafely(code);
       if (parsed.ok) {
         displayPreview(code);
-        showSuccess('Preview updated from SVG code');
       } else {
         showError('Invalid SVG code. Please fix errors or disable editing.');
       }
@@ -304,14 +302,22 @@ async function loadRandomExampleIntoEditor() {
 }
 
 /**
- * Handle render button click
+ * Live validation and rendering on every keystroke
+ * Shows errors subtly in editor; silently updates preview on success
  */
-async function handleRender() {
+async function validateAndRender() {
   const sourceInput = document.getElementById('mermaid-source');
+  const editorError = document.getElementById('editor-error');
+  
+  if (!sourceInput) return;
+  
   let mermaidSource = sourceInput.value.trim();
   
   if (!mermaidSource) {
-    showError('Please enter Mermaid source code');
+    // Empty editor: clear previews and error
+    editorError.textContent = '';
+    editorError.classList.remove('show');
+    displayPreview('');
     return;
   }
   
@@ -323,8 +329,7 @@ async function handleRender() {
     if (ensured.added) {
       // Reflect auto-added annotations back into the textarea
       if (sourceInput) sourceInput.value = mermaidSource;
-      // Inform the user with a non-blocking accessible toast
-      showToast('Title and description added for accessibility, please customize.', 'info');
+      showToast('Title and description added for accessibility.', 'info');
     }
     
     // Render Mermaid
@@ -339,10 +344,21 @@ async function handleRender() {
     // Store current state
     saveDiagramToStorage(mermaidSource);
     
-    showSuccess('Diagram rendered successfully');
+    // Clear any previous error
+    editorError.textContent = '';
+    editorError.classList.remove('show');
   } catch (error) {
-    showError(`Error: ${error.message}`);
+    // Show subtle error in editor area
+    editorError.textContent = error.message;
+    editorError.classList.add('show');
   }
+}
+
+/**
+ * Handle render button click (deprecated; use validateAndRender instead)
+ */
+async function handleRender() {
+  return validateAndRender();
 }
 
 /**
