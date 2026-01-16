@@ -31,7 +31,7 @@ jobs:
       - name: Check syntax
         run: node tests/check-syntax.js 2>/dev/null || echo "Syntax check not yet implemented"
 
-note: |
-  This workflow is OPTIONAL and provided for maintainers.
-  The site runs entirely in the browser with no build step required.
-  Users can clone and use the project immediately without running these checks.
+# Note:
+# This workflow is OPTIONAL and provided for maintainers.
+# The site runs entirely in the browser with no build step required.
+# Users can clone and use the project immediately without running these checks.
