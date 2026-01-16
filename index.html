@@ -93,6 +93,17 @@
         </section>
       </div>
 
+      <!-- Modal: Accessibility Notice -->
+      <div id="modal-overlay" class="modal-overlay" hidden>
+        <div id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-message" aria-hidden="true">
+          <h2 id="modal-title">Notice</h2>
+          <p id="modal-message" class="info">Title and description added for accessibility, please customize.</p>
+          <div style="display:flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem;">
+            <button id="modal-close" type="button" aria-label="Close notification">OK</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Sample Diagrams Section -->
       <section aria-labelledby="samples-title">
         <h2 id="samples-title">Sample Diagrams</h2>
@@ -101,6 +112,19 @@
         <div id="samples-list" style="display: grid; gap: 1rem; margin-bottom: 2rem;">
           <!-- Sample buttons will be inserted here -->
         </div>
+      </section>
+
+      <!-- SVG Code Section -->
+      <section aria-labelledby="svg-code-title">
+        <h2 id="svg-code-title">SVG Code</h2>
+        <p>You can view the generated accessible SVG code below. Editing is optional and intended for advanced users.</p>
+        <div class="toolbar" style="margin-top: 0;">
+          <label for="edit-svg-toggle" id="edit-svg-label">Enable SVG editing (advanced)</label>
+          <input id="edit-svg-toggle" type="checkbox" aria-labelledby="edit-svg-label" aria-describedby="edit-svg-desc">
+          <span id="edit-svg-desc" class="sr-only">When enabled, you can directly edit the generated SVG code. Changes here will update the preview. This does not sync back to your Mermaid source.</span>
+          <button id="copy-svg-btn" type="button" aria-label="Copy SVG code to clipboard">Copy SVG</button>
+        </div>
+        <textarea id="svg-code" aria-label="Generated accessible SVG code" spellcheck="false" style="min-height: 240px;" readonly></textarea>
       </section>
     </main>
 

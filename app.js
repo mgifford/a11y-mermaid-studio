@@ -197,6 +197,9 @@ function attachEventListeners() {
   const renderButton = document.getElementById('render-btn');
   const exportButton = document.getElementById('export-btn');
   const themeToggle = document.getElementById('theme-toggle');
+  const svgCode = document.getElementById('svg-code');
+  const copySvgBtn = document.getElementById('copy-svg-btn');
+  const editSvgToggle = document.getElementById('edit-svg-toggle');
   
   if (renderButton) {
     renderButton.addEventListener('click', handleRender);
@@ -217,6 +220,32 @@ function attachEventListeners() {
       document.documentElement.setAttribute('data-theme', e.target.checked ? 'dark' : 'light');
     });
   }
+
+  if (copySvgBtn && svgCode) {
+    copySvgBtn.addEventListener('click', () => copyToClipboard(svgCode.value));
+  }
+
+  if (editSvgToggle && svgCode) {
+    editSvgToggle.addEventListener('change', (e) => {
+      const enabled = e.target.checked;
+      svgCode.readOnly = !enabled;
+      if (enabled) {
+        showModal('SVG editing enabled. Changes here update the preview but will not sync back to Mermaid source.', 'info');
+      }
+    });
+    // Live update preview when editing is enabled
+    svgCode.addEventListener('input', () => {
+      if (!editSvgToggle.checked) return;
+      const code = svgCode.value;
+      const parsed = parseSvgSafely(code);
+      if (parsed.ok) {
+        displayPreview(code);
+        showSuccess('Preview updated from SVG code');
+      } else {
+        showError('Invalid SVG code. Please fix errors or disable editing.');
+      }
+    });
+  }
 }
 
 /**
@@ -224,7 +253,7 @@ function attachEventListeners() {
  */
 async function handleRender() {
   const sourceInput = document.getElementById('mermaid-source');
-  const mermaidSource = sourceInput.value.trim();
+  let mermaidSource = sourceInput.value.trim();
   
   if (!mermaidSource) {
     showError('Please enter Mermaid source code');
@@ -232,18 +261,15 @@ async function handleRender() {
   }
   
   try {
-    // Parse metadata
-    const metadata = parseMermaidMetadata(mermaidSource);
-    
-    // Validate required metadata
-    if (!metadata.title) {
-      showError('Diagram must have a title. Add: %%accTitle Your Title');
-      return;
-    }
-    
-    if (!metadata.description) {
-      showError('Diagram must have a description. Add: %%accDescr Your description');
-      return;
+    // Ensure required metadata; auto-insert if missing
+    const ensured = ensureMetadata(mermaidSource);
+    mermaidSource = ensured.source;
+    const metadata = ensured.metadata;
+    if (ensured.added) {
+      // Reflect auto-added annotations back into the textarea
+      if (sourceInput) sourceInput.value = mermaidSource;
+      // Inform the user with an accessible modal popup
+      showModal('Title and description added for accessibility, please customize.', 'info');
     }
     
     // Render Mermaid
@@ -265,6 +291,82 @@ async function handleRender() {
 }
 
 /**
+ * Ensure Mermaid source has required accessibility annotations.
+ * If missing, auto-insert defaults and return updated source and metadata.
+ */
+function ensureMetadata(source) {
+  const current = parseMermaidMetadata(source);
+  let added = false;
+  let updated = source;
+  const lines = [];
+
+  if (!current.title) {
+    lines.push('%%accTitle Untitled Diagram');
+    added = true;
+  }
+  if (!current.description) {
+    lines.push('%%accDescr Auto-generated description for accessibility. Please customize.');
+    added = true;
+  }
+
+  if (added) {
+    // Append annotations at the end to avoid impacting Mermaid parsing
+    updated = source + (source.endsWith('\n') ? '' : '\n') + lines.join('\n') + '\n';
+  }
+
+  const finalMeta = parseMermaidMetadata(updated);
+  return { source: updated, metadata: finalMeta, added };
+}
+
+/**
+ * Show an accessible modal dialog
+ */
+function showModal(message, tone = 'info') {
+  const overlay = document.getElementById('modal-overlay');
+  const dialog = document.getElementById('modal');
+  const msgEl = document.getElementById('modal-message');
+  const closeBtn = document.getElementById('modal-close');
+
+  if (!overlay || !dialog || !msgEl || !closeBtn) {
+    // Fallback to status area if modal not present
+    showSuccess(message);
+    return;
+  }
+
+  msgEl.textContent = message;
+  msgEl.classList.remove('info', 'error', 'success');
+  if (tone === 'error') msgEl.classList.add('error');
+  else if (tone === 'success') msgEl.classList.add('success');
+  else msgEl.classList.add('info');
+
+  overlay.removeAttribute('hidden');
+  dialog.setAttribute('aria-hidden', 'false');
+  closeBtn.focus();
+
+  function closeModal() {
+    dialog.setAttribute('aria-hidden', 'true');
+    overlay.setAttribute('hidden', '');
+    // Return focus to render button for good UX
+    document.getElementById('render-btn')?.focus();
+    // Cleanup listeners
+    overlay.removeEventListener('click', overlayHandler);
+    document.removeEventListener('keydown', escHandler);
+    closeBtn.removeEventListener('click', closeModal);
+  }
+
+  function overlayHandler(e) {
+    if (e.target === overlay) closeModal();
+  }
+  function escHandler(e) {
+    if (e.key === 'Escape') closeModal();
+  }
+
+  overlay.addEventListener('click', overlayHandler);
+  document.addEventListener('keydown', escHandler);
+  closeBtn.addEventListener('click', closeModal);
+}
+
+/**
  * Display SVG preview in light and dark modes
  */
 function displayPreview(svgString) {
@@ -281,21 +383,31 @@ function displayPreview(svgString) {
     const svg = darkPreview.querySelector('svg');
     if (svg) svg.classList.add('dark-mode');
   }
+
+  // Reflect latest SVG code into the code viewer if available and not in edit mode
+  const svgCode = document.getElementById('svg-code');
+  const editToggle = document.getElementById('edit-svg-toggle');
+  if (svgCode && (!editToggle || !editToggle.checked)) {
+    svgCode.value = svgString;
+  }
 }
 
 /**
  * Handle export button click
  */
 function handleExport() {
-  const lightPreview = document.getElementById('preview-light');
-  const svg = lightPreview?.querySelector('svg');
-  
-  if (!svg) {
-    showError('No diagram to export. Render a diagram first.');
-    return;
+  // Prefer the SVG code textarea if present (may include edits)
+  const svgCode = document.getElementById('svg-code');
+  let svgString = svgCode?.value;
+  if (!svgString) {
+    const lightPreview = document.getElementById('preview-light');
+    const svg = lightPreview?.querySelector('svg');
+    if (!svg) {
+      showError('No diagram to export. Render a diagram first.');
+      return;
+    }
+    svgString = new XMLSerializer().serializeToString(svg);
   }
-  
-  const svgString = new XMLSerializer().serializeToString(svg);
   const blob = new Blob([svgString], { type: 'image/svg+xml' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -305,6 +417,29 @@ function handleExport() {
   URL.revokeObjectURL(url);
   
   showSuccess('SVG exported successfully');
+}
+
+/** Copy helper */
+async function copyToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text || '');
+    showSuccess('SVG code copied to clipboard');
+  } catch (e) {
+    showError('Failed to copy to clipboard');
+  }
+}
+
+/** Parse SVG safely to validate edits */
+function parseSvgSafely(svgString) {
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(svgString, 'image/svg+xml');
+    const err = doc.querySelector('parsererror');
+    if (err) return { ok: false, error: err.textContent };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
 }
 
 /**

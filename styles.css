@@ -14,6 +14,7 @@
   --color-primary-hover: #0052a3;
   --color-success: #22863a;
   --color-error: #cb2431;
+  --color-info: #1f6feb;
   --color-focus: #0066cc;
   
   --space-xs: 0.25rem;
@@ -359,6 +360,42 @@ footer {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border-width: 0;
+}
+
+/* Modal styles */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: var(--color-bg);
+  color: var(--color-text);
+  width: min(520px, 92vw);
+  border: 2px solid var(--color-border);
+  border-radius: 6px;
+  padding: var(--space-lg);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.25);
+}
+
+#modal-message.info {
+  color: var(--color-info);
+  font-weight: 600;
+}
+
+#modal-message.success {
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+#modal-message.error {
+  color: var(--color-error);
+  font-weight: 600;
 }
 
 /* Print styles */
