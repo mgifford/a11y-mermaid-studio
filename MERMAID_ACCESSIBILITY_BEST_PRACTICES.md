@@ -1,5 +1,8 @@
 # Mermaid Accessibility Best Practices
 
+AGPL-3.0-or-later License - See LICENSE file for full text  
+Copyright (c) 2026 Mark Gifford
+
 **Normative reference for authoring, annotation, linting, and the "Generate prompt to improve this diagram" workflow.**
 
 Based on:

@@ -129,7 +129,9 @@ The site automatically deploys to GitHub Pages when you push to `main`:
 
 ## License
 
-MIT License — See LICENSE file for full text.
+AGPL-3.0-or-later — See LICENSE file for full text.
+
+This project uses the GNU Affero General Public License (AGPL-3.0) to ensure that improvements and modifications remain accessible to all users. When using this software as part of a web service or application, you must make your modified source code available to users of that service.
 
 ## Contributing
 

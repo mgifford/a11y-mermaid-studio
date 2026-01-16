@@ -1,5 +1,8 @@
 # Mermaid Transformation Best Practices
 
+AGPL-3.0-or-later License - See LICENSE file for full text  
+Copyright (c) 2026 Mark Gifford
+
 **Normative specification governing post-processing rules, semantic preservation, and verification checklists.**
 
 Based on:
