@@ -241,6 +241,43 @@ function applyAccessibilityTransformations(svgString, metadata) {
 }
 
 /**
+ * Ensure the SVG has a viewBox so it renders with visible dimensions
+ */
+function ensureViewBox(svgString) {
+  if (!svgString) return svgString;
+
+  const temp = document.createElement('div');
+  temp.style.position = 'absolute';
+  temp.style.left = '-9999px';
+  temp.style.top = '-9999px';
+  temp.innerHTML = svgString;
+
+  const svg = temp.querySelector('svg');
+  if (!svg) return svgString;
+  if (svg.hasAttribute('viewBox')) return svgString;
+
+  let appended = false;
+  try {
+    document.body.appendChild(temp);
+    appended = true;
+    const bbox = svg.getBBox();
+    const width = parseFloat(svg.getAttribute('width')) || bbox.width || 300;
+    const height = parseFloat(svg.getAttribute('height')) || bbox.height || 150;
+    if (width > 0 && height > 0) {
+      svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+      svg.removeAttribute('height');
+      svg.style.width = '100%';
+    }
+    return svg.outerHTML;
+  } catch (e) {
+    console.warn('[ensureViewBox] Failed, returning original SVG', e);
+    return svgString;
+  } finally {
+    if (appended && temp.parentNode) temp.parentNode.removeChild(temp);
+  }
+}
+
+/**
  * Apply flowchart-specific accessibility semantics
  * Implements Léonie Watson's accessible flowchart pattern:
  * https://tink.uk/accessible-svg-flowcharts/
@@ -1247,9 +1284,12 @@ async function validateAndRender() {
     const accessibleSvg = applyAccessibilityTransformations(svg, metadata);
     console.log('[validateAndRender] Accessibility transformations complete, SVG length:', accessibleSvg.length);
     
+    // Ensure viewBox so the preview has measurable dimensions
+    const sizedSvg = ensureViewBox(accessibleSvg);
+    
     // Display preview
     console.log('[validateAndRender] Calling displayPreview...');
-    displayPreview(accessibleSvg);
+    displayPreview(sizedSvg);
     
     // Generate and display narrative
     console.log('[validateAndRender] Generating narrative...');

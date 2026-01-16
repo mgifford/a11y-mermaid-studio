@@ -65,7 +65,8 @@ describe('Integration Tests - Actual SVG Generation', () => {
     expect(appJs).toContain('async function validateAndRender()');
     expect(appJs).toContain('const svg = await renderMermaidDiagram(mermaidSource)');
     expect(appJs).toContain('const accessibleSvg = applyAccessibilityTransformations(svg, metadata)');
-    expect(appJs).toContain('displayPreview(accessibleSvg)');
+    expect(appJs).toContain('const sizedSvg = ensureViewBox(accessibleSvg)');
+    expect(appJs).toContain('displayPreview(sizedSvg)');
   });
 
   it('Random button flow should be: load → validateAndRender → displayPreview → updateSvgDisplay', () => {
