@@ -119,6 +119,13 @@ header {
   margin-left: auto;
 }
 
+.note {
+  margin: 0 auto var(--space-lg);
+  padding: var(--space-sm) var(--space-md);
+  text-align: center;
+  color: var(--color-text);
+}
+
 .top-actions button {
   padding: var(--space-sm) var(--space-md);
   font-size: var(--font-size-sm);
@@ -460,6 +467,8 @@ button:disabled {
 .preview-pane svg {
   max-width: 100%;
   height: auto;
+  min-height: 240px;
+  display: block;
 }
 
 .preview-pane:empty::before {

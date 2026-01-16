@@ -81,4 +81,19 @@ describe('Regression Tests', () => {
     expect(appJs).not.toContain('STATE.lightPreview');
     expect(appJs).not.toContain('STATE.darkPreview');
   });
+
+  it('should keep flowchart node text extraction robust', () => {
+    // Guard against regressions that produced empty node titles in flowcharts
+    expect(appJs).toContain('function extractNodeLabel');
+    expect(appJs).toContain('const nodeText = extractNodeLabel(node)');
+  });
+
+  it('should ship a valid flowchart example with required annotations', () => {
+    const flow = readFileSync(path.resolve(process.cwd(), 'examples', 'flowchart-basic.mmd'), 'utf8');
+    expect(flow).toMatch(/flowchart\s+TD/);
+    expect(flow).toMatch(/\[Start\]/);
+    expect(flow).toMatch(/\[Celebrate\]/);
+    expect(flow).toMatch(/%%accTitle/);
+    expect(flow).toMatch(/%%accDescr/);
+  });
 });

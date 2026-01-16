@@ -44,6 +44,8 @@ const STATE = {
   currentSvg: '', // Raw SVG from Mermaid
   beautifiedSvg: '', // Formatted version
   optimizedSvg: '', // Optimized version
+  userEdited: false, // Tracks whether user has edited the Mermaid source
+  lastPreviewToastMs: 0,
 };
 
 /**
@@ -70,29 +72,26 @@ async function initializeApp() {
     initializeThemeToggle();
     console.log('[Init] Event listeners and theme initialized');
     
-    // Load any previously saved diagram from localStorage
-    restoreLastDiagram();
+      // Load any previously saved diagram from localStorage (only user-edited diagrams are restored)
+      const restored = restoreLastDiagram();
 
-    // If editor is empty after restore, load a random example automatically
-    const sourceInput = document.getElementById('mermaid-source');
-    if (sourceInput && !sourceInput.value.trim()) {
-      console.log('[Init] Editor empty, loading random example...');
-      try {
-        await loadRandomExampleIntoEditor();
-        console.log('[Init] Example loaded, rendering...');
-        // Auto-render after loading example
+      // If editor is empty or we skipped restore, load a random example automatically
+      const sourceInput = document.getElementById('mermaid-source');
+      if (sourceInput && !sourceInput.value.trim()) {
+        console.log('[Init] Editor empty, loading random example...');
+        try {
+          const example = await loadRandomExampleIntoEditor();
+          console.log('[Init] Random example loaded, length:', example.length);
+        } catch (e) {
+          console.error('[Init] Failed to load random example:', e);
+          showError(`Failed to load example: ${e.message}`);
+        }
+      } else if (restored) {
+        // Render whatever we restored so the previews are in sync
+        console.log('[Init] Content restored, rendering...');
         const renderOk = await validateAndRender();
         console.log('[Init] validateAndRender returned:', renderOk);
-      } catch (e) {
-        console.error('[Init] Error loading example:', e);
-        showError(`Failed to load example: ${e.message}`);
       }
-    } else {
-      // Render whatever we restored so the previews are in sync
-      console.log('[Init] Content restored, rendering...');
-      const renderOk = await validateAndRender();
-      console.log('[Init] validateAndRender returned:', renderOk);
-    }
     
     console.log('Application ready');
   } catch (error) {
@@ -1136,11 +1135,15 @@ function attachEventListeners() {
   const copySvgBtn = document.getElementById('copy-svg-btn');
   
   if (sourceInput) {
-    // Live validation and rendering on every keystroke
+    // Track user edits separately from validation to decide whether to restore on reload
+    sourceInput.addEventListener('input', () => {
+      STATE.userEdited = true;
+    });
+    // Live validation and rendering on every keystroke (kept for test expectations)
     sourceInput.addEventListener('input', validateAndRender);
     // Save to storage on change
     sourceInput.addEventListener('change', () => {
-      saveDiagramToStorage(sourceInput.value);
+      saveDiagramToStorage(sourceInput.value, true);
     });
   }
   
@@ -1284,7 +1287,8 @@ async function loadRandomExampleIntoEditor() {
   const sourceInput = document.getElementById('mermaid-source');
   if (sourceInput) {
     sourceInput.value = content.trim();
-    saveDiagramToStorage(sourceInput.value);
+    STATE.userEdited = false;
+    // Do not persist auto-loaded examples; keep storage reserved for user edits
   }
   return content;
 }
@@ -1355,9 +1359,16 @@ async function validateAndRender() {
     // Generate and display narrative
     console.log('[validateAndRender] Generating narrative...');
     generateDiagramNarrative(mermaidSource, metadata);
+
+    // Notify when the accessible preview is refreshed (throttled)
+    const now = Date.now();
+    if (now - STATE.lastPreviewToastMs > 1200) {
+      showToast('Accessible preview updated.', 'success');
+      STATE.lastPreviewToastMs = now;
+    }
     
-    // Store current state
-    saveDiagramToStorage(mermaidSource);
+    // Store current state only when user has edited the source
+    saveDiagramToStorage(mermaidSource, STATE.userEdited);
     
     // Clear any previous error
     editorError.textContent = '';
@@ -1867,9 +1878,10 @@ function clearStorageCache() {
 /**
  * Save diagram source to localStorage
  */
-function saveDiagramToStorage(source) {
+function saveDiagramToStorage(source, userEdited = true) {
   try {
-    localStorage.setItem('lastDiagram', source);
+    const payload = JSON.stringify({ source, userEdited: !!userEdited });
+    localStorage.setItem('lastDiagram', payload);
   } catch (e) {
     console.warn('Could not save to localStorage:', e);
   }
@@ -1880,17 +1892,33 @@ function saveDiagramToStorage(source) {
  */
 function restoreLastDiagram() {
   try {
-    const lastDiagram = localStorage.getItem('lastDiagram');
+    const raw = localStorage.getItem('lastDiagram');
     const sourceInput = document.getElementById('mermaid-source');
-    
-    if (lastDiagram && lastDiagram.trim() && sourceInput) {
-      console.log('[restoreLastDiagram] Restoring saved diagram, length:', lastDiagram.length);
-      sourceInput.value = lastDiagram;
-    } else {
+    if (!raw || !sourceInput) {
       console.log('[restoreLastDiagram] No saved diagram found or storage empty');
+      return false;
     }
+
+    let parsed = null;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      // Legacy string-only storage
+      parsed = { source: raw, userEdited: true };
+    }
+
+    if (parsed?.source && parsed.userEdited) {
+      console.log('[restoreLastDiagram] Restoring user-edited diagram, length:', parsed.source.length);
+      sourceInput.value = parsed.source;
+      STATE.userEdited = true;
+      return true;
+    }
+
+    console.log('[restoreLastDiagram] Skipping restore because last diagram was auto-loaded or empty');
+    return false;
   } catch (e) {
     console.warn('[restoreLastDiagram] Could not restore from localStorage:', e);
+    return false;
   }
 }
 
