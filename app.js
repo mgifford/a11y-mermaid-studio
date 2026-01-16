@@ -320,6 +320,276 @@ function applyFlowchartSemantics(svg) {
   // This is a pragmatic approach that preserves visual layout while adding semantics
 }
 
+/**
+ * Generate a narrative description of the diagram structure
+ * Analyzes Mermaid source and converts it to prose
+ */
+function generateDiagramNarrative(mermaidSource, metadata) {
+  const narrativeDiv = document.getElementById('diagram-narrative');
+  if (!narrativeDiv) return;
+  
+  console.log('[Narrative] Generating narrative for diagram');
+  
+  // Detect diagram type
+  const diagramType = detectDiagramType(mermaidSource);
+  console.log('[Narrative] Detected diagram type:', diagramType);
+  
+  let narrative = '';
+  
+  // Add title and description if present
+  if (metadata.title) {
+    narrative += `<h3 style="margin-top: 0;">${escapeHtml(metadata.title)}</h3>\n`;
+  }
+  if (metadata.description) {
+    narrative += `<p><em>${escapeHtml(metadata.description)}</em></p>\n`;
+  }
+  
+  // Generate type-specific narrative
+  switch (diagramType) {
+    case 'flowchart':
+      narrative += generateFlowchartNarrative(mermaidSource);
+      break;
+    case 'pie':
+      narrative += generatePieNarrative(mermaidSource);
+      break;
+    case 'classDiagram':
+      narrative += generateClassDiagramNarrative(mermaidSource);
+      break;
+    default:
+      narrative += `<p>This is a ${diagramType} diagram.</p>`;
+  }
+  
+  narrativeDiv.innerHTML = narrative;
+}
+
+/**
+ * Detect Mermaid diagram type from source
+ */
+function detectDiagramType(source) {
+  const lines = source.trim().split('\n');
+  const firstLine = lines[0].trim();
+  
+  if (firstLine.startsWith('flowchart') || firstLine.startsWith('graph')) {
+    return 'flowchart';
+  } else if (firstLine.startsWith('pie')) {
+    return 'pie';
+  } else if (firstLine.startsWith('classDiagram')) {
+    return 'classDiagram';
+  } else if (firstLine.startsWith('sequenceDiagram')) {
+    return 'sequenceDiagram';
+  } else if (firstLine.startsWith('gantt')) {
+    return 'gantt';
+  }
+  
+  return 'unknown';
+}
+
+/**
+ * Generate narrative for flowchart diagrams
+ */
+function generateFlowchartNarrative(source) {
+  let narrative = '<p><strong>Flow:</strong></p>\n<ol>\n';
+  
+  const lines = source.split('\n')
+    .filter(line => !line.trim().startsWith('%%'))
+    .filter(line => line.trim().length > 0)
+    .slice(1); // Skip first line (flowchart TD)
+  
+  const nodes = new Map();
+  const edges = [];
+  
+  // Parse nodes and edges
+  lines.forEach(line => {
+    line = line.trim();
+    
+    // Node definition: A[Text] or A{Question?}
+    const nodeMatch = line.match(/^([A-Z0-9]+)\[([^\]]+)\]|^([A-Z0-9]+)\{([^}]+)\}/);
+    if (nodeMatch) {
+      const id = nodeMatch[1] || nodeMatch[3];
+      const text = nodeMatch[2] || nodeMatch[4];
+      nodes.set(id, { text, isQuestion: !!nodeMatch[4] });
+    }
+    
+    // Edge with label: A -->|Yes| B
+    const edgeLabelMatch = line.match(/([A-Z0-9]+)\s*-->\s*\|([^|]+)\|\s*([A-Z0-9]+)/);
+    if (edgeLabelMatch) {
+      edges.push({ from: edgeLabelMatch[1], to: edgeLabelMatch[3], label: edgeLabelMatch[2] });
+    } else {
+      // Edge without label: A --> B
+      const edgeMatch = line.match(/([A-Z0-9]+)\s*-->\s*([A-Z0-9]+)/);
+      if (edgeMatch) {
+        edges.push({ from: edgeMatch[1], to: edgeMatch[2], label: null });
+      }
+    }
+  });
+  
+  console.log('[Narrative] Found', nodes.size, 'nodes and', edges.length, 'edges');
+  
+  // Build narrative
+  if (nodes.size > 0) {
+    const firstNode = Array.from(nodes.entries())[0];
+    narrative += `<li>Start at: <strong>${escapeHtml(firstNode[1].text)}</strong></li>\n`;
+    
+    edges.forEach(edge => {
+      const fromNode = nodes.get(edge.from);
+      const toNode = nodes.get(edge.to);
+      
+      if (fromNode && toNode) {
+        if (fromNode.isQuestion) {
+          if (edge.label) {
+            narrative += `<li>If <em>${escapeHtml(fromNode.text)}</em> is <strong>${escapeHtml(edge.label)}</strong>, then → <strong>${escapeHtml(toNode.text)}</strong></li>\n`;
+          } else {
+            narrative += `<li>From <em>${escapeHtml(fromNode.text)}</em> → <strong>${escapeHtml(toNode.text)}</strong></li>\n`;
+          }
+        } else {
+          if (edge.label) {
+            narrative += `<li>After <strong>${escapeHtml(fromNode.text)}</strong>, <em>${escapeHtml(edge.label)}</em> → <strong>${escapeHtml(toNode.text)}</strong></li>\n`;
+          } else {
+            narrative += `<li><strong>${escapeHtml(fromNode.text)}</strong> → <strong>${escapeHtml(toNode.text)}</strong></li>\n`;
+          }
+        }
+      }
+    });
+  } else {
+    narrative += '<li>No flowchart steps detected.</li>\n';
+  }
+  
+  narrative += '</ol>\n';
+  
+  // Add summary stats
+  narrative += `<p style="color: #666; font-size: 0.9em; margin-top: 1rem;">`;
+  narrative += `<strong>Structure:</strong> ${nodes.size} node${nodes.size !== 1 ? 's' : ''}, `;
+  narrative += `${edges.length} connection${edges.length !== 1 ? 's' : ''}`;
+  const questions = Array.from(nodes.values()).filter(n => n.isQuestion).length;
+  if (questions > 0) {
+    narrative += `, ${questions} decision point${questions !== 1 ? 's' : ''}`;
+  }
+  narrative += `</p>`;
+  
+  return narrative;
+}
+
+/**
+ * Generate narrative for pie chart diagrams
+ */
+function generatePieNarrative(source) {
+  let narrative = '<p><strong>Data breakdown:</strong></p>\n<ul>\n';
+  
+  const lines = source.split('\n')
+    .filter(line => !line.trim().startsWith('%%'))
+    .filter(line => line.trim().length > 0)
+    .slice(1); // Skip title line
+  
+  const data = [];
+  let total = 0;
+  
+  lines.forEach(line => {
+    const match = line.trim().match(/["']?([^"':]+)["']?\s*:\s*(\d+(?:\.\d+)?)/);
+    if (match) {
+      const label = match[1].trim();
+      const value = parseFloat(match[2]);
+      data.push({ label, value });
+      total += value;
+    }
+  });
+  
+  console.log('[Narrative] Found', data.length, 'pie segments, total:', total);
+  
+  // Sort by value descending
+  data.sort((a, b) => b.value - a.value);
+  
+  data.forEach(item => {
+    const percentage = total > 0 ? ((item.value / total) * 100).toFixed(1) : 0;
+    narrative += `<li><strong>${escapeHtml(item.label)}</strong>: ${item.value} (${percentage}%)</li>\n`;
+  });
+  
+  narrative += '</ul>\n';
+  narrative += `<p style="color: #666; font-size: 0.9em;"><strong>Total:</strong> ${total}</p>`;
+  
+  return narrative;
+}
+
+/**
+ * Generate narrative for class diagram
+ */
+function generateClassDiagramNarrative(source) {
+  let narrative = '<p><strong>Class structure:</strong></p>\n<ul>\n';
+  
+  const lines = source.split('\n')
+    .filter(line => !line.trim().startsWith('%%'))
+    .filter(line => line.trim().length > 0)
+    .slice(1);
+  
+  const classes = new Map();
+  const relationships = [];
+  
+  lines.forEach(line => {
+    line = line.trim();
+    
+    // Class definition
+    const classMatch = line.match(/class\s+(\w+)/);
+    if (classMatch) {
+      const className = classMatch[1];
+      if (!classes.has(className)) {
+        classes.set(className, { methods: [], properties: [] });
+      }
+    }
+    
+    // Methods/properties
+    const memberMatch = line.match(/(\w+)\s*:\s*([+\-#~])?(.+)/);
+    if (memberMatch) {
+      const className = memberMatch[1];
+      const member = memberMatch[3];
+      if (classes.has(className)) {
+        if (member.includes('()')) {
+          classes.get(className).methods.push(member);
+        } else {
+          classes.get(className).properties.push(member);
+        }
+      }
+    }
+    
+    // Relationships
+    const relMatch = line.match(/(\w+)\s*(<\||--\||--|\.\.|<\.\.|o--)\s*(\w+)/);
+    if (relMatch) {
+      relationships.push({ from: relMatch[1], type: relMatch[2], to: relMatch[3] });
+    }
+  });
+  
+  console.log('[Narrative] Found', classes.size, 'classes and', relationships.length, 'relationships');
+  
+  classes.forEach((classData, className) => {
+    narrative += `<li><strong>${escapeHtml(className)}</strong>`;
+    if (classData.methods.length > 0) {
+      narrative += ` with methods: ${classData.methods.map(m => escapeHtml(m)).join(', ')}`;
+    }
+    narrative += `</li>\n`;
+  });
+  
+  narrative += '</ul>\n';
+  
+  if (relationships.length > 0) {
+    narrative += '<p><strong>Relationships:</strong></p>\n<ul>\n';
+    relationships.forEach(rel => {
+      const relType = rel.type === '<|--' ? 'inherits from' : 
+                      rel.type === '-->' ? 'uses' : 'relates to';
+      narrative += `<li><strong>${escapeHtml(rel.from)}</strong> ${relType} <strong>${escapeHtml(rel.to)}</strong></li>\n`;
+    });
+    narrative += '</ul>\n';
+  }
+  
+  return narrative;
+}
+
+/**
+ * Escape HTML to prevent XSS
+ */
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 
 /**
  * Calculate WCAG contrast ratio between two colors
@@ -540,6 +810,9 @@ async function validateAndRender() {
     
     // Display preview
     displayPreview(accessibleSvg);
+    
+    // Generate and display narrative
+    generateDiagramNarrative(mermaidSource, metadata);
     
     // Store current state
     saveDiagramToStorage(mermaidSource);
