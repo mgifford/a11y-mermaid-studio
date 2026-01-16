@@ -116,6 +116,7 @@ header {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+  margin-left: auto;
 }
 
 .top-actions button {
@@ -303,6 +304,17 @@ button:disabled {
   }
   .splitter {
     display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .header-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .top-actions {
+    width: 100%;
+    justify-content: flex-start;
   }
 }
 

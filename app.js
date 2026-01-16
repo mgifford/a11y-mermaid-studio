@@ -49,6 +49,9 @@ async function initializeApp() {
     } catch (e) {
       console.warn('Could not load example:', e);
     }
+  } else {
+    // Render whatever we restored so the previews are in sync
+    await validateAndRender();
   }
   
   console.log('Application ready');
@@ -235,9 +238,13 @@ function attachEventListeners() {
 
   if (randomBtn) {
     randomBtn.addEventListener('click', async () => {
-      await loadRandomExampleIntoEditor();
-      // Auto-render after loading
-      await validateAndRender();
+      try {
+        await loadRandomExampleIntoEditor();
+        await validateAndRender();
+        showToast('Loaded a random example.', 'success');
+      } catch (e) {
+        showToast('Could not load example.', 'error');
+      }
     });
   }
 
@@ -299,6 +306,7 @@ async function loadRandomExampleIntoEditor() {
     sourceInput.value = content.trim();
     saveDiagramToStorage(sourceInput.value);
   }
+  return content;
 }
 
 /**
