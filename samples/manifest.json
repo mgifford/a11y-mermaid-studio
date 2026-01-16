@@ -1,0 +1,22 @@
+{
+  "samples": [
+    {
+      "id": "simple-flow",
+      "title": "Simple Flowchart",
+      "description": "Basic three-step workflow",
+      "file": "simple-flow.mmd",
+      "type": "flowchart",
+      "status": "regression-test"
+    },
+    {
+      "id": "decision-tree",
+      "title": "Decision Tree",
+      "description": "Flowchart with conditional branches",
+      "file": "decision-tree.mmd",
+      "type": "flowchart",
+      "status": "regression-test"
+    }
+  ],
+  "lastUpdated": "2026-01-16",
+  "version": "1.0"
+}

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A11y Mermaid Studio - Render Mermaid diagrams as meaningfully accessible SVGs">
+  <title>A11y Mermaid Studio</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a href="#main" class="skip-link">Skip to main content</a>
+  
+  <header>
+    <div class="container">
+      <h1>A11y Mermaid Studio</h1>
+      <p class="subtitle">Transform Mermaid diagrams into WCAG 2.2 AA-compliant, accessible SVGs</p>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="toolbar">
+      <button id="render-btn" type="button" aria-label="Render the Mermaid diagram">
+        Render Diagram
+      </button>
+      <button id="export-btn" type="button" aria-label="Export the rendered diagram as an SVG file">
+        Export SVG
+      </button>
+      
+      <div class="theme-toggle-container">
+        <label for="theme-toggle" id="theme-label">Dark mode:</label>
+        <div class="toggle-switch">
+          <input 
+            id="theme-toggle" 
+            type="checkbox" 
+            aria-labelledby="theme-label"
+            aria-describedby="theme-desc"
+          >
+          <span class="toggle-slider"></span>
+        </div>
+        <span id="theme-desc" class="sr-only">Toggle between light and dark themes for testing contrast</span>
+      </div>
+    </div>
+
+    <div id="status" role="status" aria-live="polite" aria-atomic="true"></div>
+
+    <main id="main">
+      <div class="main-grid">
+        <!-- Editor Section -->
+        <section class="editor-section" aria-labelledby="editor-title">
+          <h2 id="editor-title">Mermaid Source</h2>
+          <p>Enter your Mermaid diagram code. Must include <code>%%accTitle</code> and <code>%%accDescr</code> annotations.</p>
+          
+          <textarea 
+            id="mermaid-source"
+            aria-label="Mermaid diagram source code with accessibility annotations"
+            aria-describedby="editor-help"
+            placeholder="graph TD
+    A[Start]
+    B[Process]
+    C[End]
+    A --> B --> C
+
+%%accTitle Workflow diagram
+%%accDescr Shows a simple three-step workflow from start to process to end"
+          ></textarea>
+          
+          <div id="editor-help" class="sr-only">
+            Required annotations:
+            %%accTitle - Brief title for the diagram
+            %%accDescr - Detailed description explaining the diagram
+          </div>
+        </section>
+
+        <!-- Preview Section -->
+        <section class="preview-section" aria-labelledby="preview-title">
+          <h2 id="preview-title">Accessible Preview</h2>
+          <p>Rendered diagram shown in both light and dark modes for contrast validation.</p>
+          
+          <div class="preview-split">
+            <div>
+              <h3 style="margin: 0 0 0.5rem 0; font-size: 14px; opacity: 0.8;">Light Mode</h3>
+              <div id="preview-light" class="preview-pane" role="img" aria-label="Diagram preview in light mode"></div>
+            </div>
+            <div>
+              <h3 style="margin: 0 0 0.5rem 0; font-size: 14px; opacity: 0.8;">Dark Mode</h3>
+              <div id="preview-dark" class="preview-pane" role="img" aria-label="Diagram preview in dark mode"></div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Sample Diagrams Section -->
+      <section aria-labelledby="samples-title">
+        <h2 id="samples-title">Sample Diagrams</h2>
+        <p>These examples demonstrate proper accessibility annotation patterns:</p>
+        
+        <div id="samples-list" style="display: grid; gap: 1rem; margin-bottom: 2rem;">
+          <!-- Sample buttons will be inserted here -->
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        <strong>A11y Mermaid Studio</strong> — Transform Mermaid diagrams into meaningfully accessible SVGs.
+        <a href="https://github.com/mgifford/a11y-mermaid-studio">View on GitHub</a>
+      </p>
+      <p>
+        Based on 
+        <a href="https://tink.uk/accessible-svg-flowcharts/">Léonie Watson's accessible SVG patterns</a>
+        and 
+        <a href="https://cariefisher.com/a11y-svg-updated/">Carie Fisher's pattern testing</a>.
+      </p>
+    </footer>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

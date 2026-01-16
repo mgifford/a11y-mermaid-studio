@@ -1,0 +1,11 @@
+graph TD
+    A[Start Process] --> B{Is data valid?}
+    B -->|Yes| C[Process Data]
+    B -->|No| D[Show Error]
+    C --> E[Send Result]
+    D --> F[Log Error]
+    E --> G[End]
+    F --> G[End]
+
+%%accTitle Data Validation Flowchart
+%%accDescr Shows a process flow where data is validated, then either processed successfully and sent as a result, or an error is logged if validation fails. Both paths converge at the end.

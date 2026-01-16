@@ -1,0 +1,34 @@
+{
+  "name": "a11y-mermaid-studio",
+  "version": "0.1.0",
+  "description": "Render Mermaid diagrams as meaningfully accessible SVGs",
+  "type": "module",
+  "main": "app.js",
+  "scripts": {
+    "test": "vitest run",
+    "test:regression": "vitest run tests/regression.test.js",
+    "test:features": "vitest run tests/features.test.js",
+    "test:accessibility": "vitest run tests/accessibility.test.js",
+    "test:ui": "vitest run tests/ui.test.js",
+    "serve": "python3 -m http.server 8008",
+    "axe": "axe http://localhost:8008 --output violations",
+    "pa11y": "pa11y http://localhost:8008",
+    "qa": "npm test && npm run axe && npm run pa11y"
+  },
+  "keywords": [
+    "accessibility",
+    "a11y",
+    "mermaid",
+    "svg",
+    "wcag",
+    "aria"
+  ],
+  "author": "Mark Gifford",
+  "license": "MIT",
+  "devDependencies": {
+    "vitest": "^1.0.0",
+    "jsdom": "^23.0.0",
+    "@axe-core/cli": "^4.8.0",
+    "pa11y": "^7.0.0"
+  }
+}

@@ -1,0 +1,16 @@
+graph TD
+    A[User Request] --> B{Authentication<br/>successful?}
+    B -->|No| C[Deny Access]
+    B -->|Yes| D{Has required<br/>permissions?}
+    D -->|No| E[Log Unauthorized<br/>Attempt]
+    D -->|Yes| F[Grant Access]
+    C --> G{Send<br/>notification?}
+    E --> G
+    F --> H[Load Resource]
+    G -->|Yes| I[Send Email]
+    G -->|No| J[Complete]
+    I --> J
+    H --> J
+
+%%accTitle Authentication and Authorization Decision Tree
+%%accDescr Describes a multi-level decision tree for user authentication and authorization. First, credentials are validated. If authentication fails, access is denied. If successful, the system checks user permissions. Unauthorized attempts and successful grants are handled differently, with optional notifications sent via email before completing the process.
