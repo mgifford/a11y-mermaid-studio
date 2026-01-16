@@ -56,6 +56,8 @@ If a feature requires a server, a build step, or guessing user intent without co
 
 - **Léonie Watson's "Accessible SVG flowcharts"** (https://tink.uk/accessible-svg-flowcharts/) — normative specification for flowchart accessibility, including list-based semantics, node structure, and link handling. Also see companion articles on [accessible SVG line graphs](https://tink.uk/accessible-svg-line-graphs/) and [accessible SVG tables](https://tink.uk/accessible-svg-tables/).
 - **Carie Fisher's "Accessible SVGs: Perfect Patterns For Screen Reader Users"** (https://cariefisher.com/a11y-svg-updated/) — normative specification for SVG accessibility patterns. This project implements **Pattern 11** (`<svg>` + `role="img"` + `<title>` + `<desc>` + `aria-labelledby="[ID]"`) as the baseline for complex diagrams, with fallback to Pattern 5 or Pattern 8 for simpler cases.
+- **MERMAID_DIAGRAM_TYPES.md** — Comprehensive guide to all 23 MermaidJS diagram types, organized by purpose, complexity, and narrative generation readiness. Includes implementation strategy for new narrative generators and common syntax patterns across all diagram types.
+- **MERMAID_DIAGRAM_TYPES.json** — Machine-readable reference documenting syntax details, primary elements, narrative support status (implemented: 5, planned: 5, future: 13), and organization schemes for all 23 diagram types.
 - **MERMAID_ACCESSIBILITY_BEST_PRACTICES.md** — (to be created) normative accessibility specification for authoring, annotation, linting, and the "Generate prompt to improve this diagram" workflow.
 - **MERMAID_TRANSFORMATION_BEST_PRACTICES.md** — (to be created) normative transformation specification governing post-processing rules, semantic preservation, and verification checklists.
 
@@ -79,13 +81,26 @@ These are mandatory. If missing, export is blocked and the UI must prompt the us
 
 **Pattern rationale:** Pattern 11 is Carie Fisher's "best-in-show" for complex images, tested across multiple screen reader/browser combinations. While it may repeat content in some configurations, it never ignores accessibility elements.
 
-### Flowchart Semantics
+### Diagram Type Support
 
-Flowcharts must follow the semantic approach described by Léonie Watson in "Accessible SVG flowcharts".
+**Currently Implemented (5 types):**
+- Flowchart: Follows Léonie Watson's "Accessible SVG flowcharts" patterns with semantic list structure
+- Gantt Chart: Narrative describes project phases, tasks, dates, and status tags
+- User Journey: Narrative tracks journey steps and satisfaction scores (1-5) mapped to emotional indicators
+- Pie Chart: Narrative calculates and describes proportional breakdown and percentages
+- Class Diagram: Narrative describes classes, methods, and relationships
+
+**Ready for Implementation (5 types):**
+- Sequence Diagram: Participants, message types, control structures (loop, alt, par, critical)
+- State Diagram: States, transitions, composite/concurrent states, special states (choice, fork, join)
+- Entity Relationship: Entities, relationships, cardinality notation
+- Git Graph: Commits, branches, merges, cherry-picks as timeline
+- C4 Model: Context, Container, Component, Code levels with descriptions
 
 **Future diagram type support:**
 - Line graphs: Follow Léonie Watson's ["Accessible SVG line graphs"](https://tink.uk/accessible-svg-line-graphs/) patterns
 - Tables/matrices: Follow Léonie Watson's ["Accessible SVG tables"](https://tink.uk/accessible-svg-tables/) patterns
+- Remaining 8 types (Quadrant, Mind Map, Sankey, Timeline, Architecture, Radar, Treemap, Requirement, Packet, Kanban, ZenUML, Block): See [MERMAID_DIAGRAM_TYPES.md](./MERMAID_DIAGRAM_TYPES.md) for analysis and implementation guidance
 
 **Key requirements:**
 - A wrapper group with `role="list"`
@@ -170,16 +185,18 @@ Dark mode is not optional. Contrast must be validated in both light and dark the
 
 The sample Mermaid files are not demos only. They are:
 - Educational examples
-- Regression tests
-- Documentation of supported patterns
+- Regression tests for narrative generation
+- Documentation of supported patterns and syntax variations
+- Test cases for diagram type detection and semantics
 
 Samples must:
-- Cover a wide range of Mermaid diagram types
+- Cover a wide range of Mermaid diagram types (currently 11+ types)
 - Include both annotated and unannotated examples
 - Include known limitations where applicable
-- Be tracked in a manifest file (`samples/manifest.json`) with metadata
+- Be tracked in a manifest file (`examples/manifest.json`) with metadata and narrative support status
+- Demonstrate narrative output for types with generated prose
 
-Breaking a sample’s accessibility output is a regression.
+Breaking a sample's accessibility output or narrative generation is a regression. All samples are regression-tested via `npm test`.
 
 ## Implementation Constraints
 

@@ -65,6 +65,22 @@ These are injected into the SVG as `<title>` and `<desc>` elements, which are es
 - **Theme support:** Light/dark mode with contrast validation
 - **Testing:** Vitest + Axe + Pa11y for quality assurance
 
+## Narrative Generation Support
+
+The tool automatically generates accessible prose narratives for multiple diagram types:
+
+| Type | Narrative | Example Output |
+|------|-----------|-----------------|
+| **Flowchart** | Describes nodes and flow paths | "Flow path: [Start] → [Process] → [End]" |
+| **Gantt** | Projects phases, tasks, and status tags | "Project timeline with 3 phases: Planning (2 tasks), Development (3 tasks), Deploy (1 critical task)" |
+| **User Journey** | Steps with satisfaction tracking | "User journey: 5 steps from Awareness → Purchase with overall satisfaction: 😊" |
+| **Pie Chart** | Data breakdown with percentages | "Data distribution: Item A (50%), Item B (30%), Item C (20%)" |
+| **Class Diagram** | Classes, methods, and relationships | "System classes: Customer, Order, Product with inheritance and associations" |
+
+**More types ready for implementation:** Sequence, State, Entity Relationship, Git Graph, C4 Architecture
+
+See [MERMAID_DIAGRAM_TYPES.md](./MERMAID_DIAGRAM_TYPES.md) for complete reference of all 23 supported diagram types, their syntax, and narrative potential.
+
 ## Architecture
 
 ### Core Files
@@ -89,15 +105,19 @@ npm run pa11y  # Additional accessibility validation
 
 ## Documentation
 
-See the `AGENTS.md` file for detailed agent instructions, development guidelines, and normative references:
+**Key Reference Documents:**
 
-- **Normative References:**
-  - [Léonie Watson's "Accessible SVG flowcharts"](https://tink.uk/accessible-svg-flowcharts/)
-  - [Carie Fisher's "Accessible SVGs: Perfect Patterns For Screen Reader Users"](https://cariefisher.com/a11y-svg-updated/)
+- [MERMAID_DIAGRAM_TYPES.md](./MERMAID_DIAGRAM_TYPES.md) — Complete reference for all 23 Mermaid diagram types, narrative generation strategies, and implementation guidance
+- [MERMAID_DIAGRAM_TYPES.json](./MERMAID_DIAGRAM_TYPES.json) — Machine-readable reference with syntax details, narrative readiness assessment, and organization by category/complexity
+- [AGENTS.md](./AGENTS.md) — Detailed agent instructions, development guidelines, and normative references
 
-- **Project Specifications** (to be created):
-  - `MERMAID_ACCESSIBILITY_BEST_PRACTICES.md`
-  - `MERMAID_TRANSFORMATION_BEST_PRACTICES.md`
+**Normative References:**
+- [Léonie Watson's "Accessible SVG flowcharts"](https://tink.uk/accessible-svg-flowcharts/)
+- [Carie Fisher's "Accessible SVGs: Perfect Patterns For Screen Reader Users"](https://cariefisher.com/a11y-svg-updated/)
+
+**Project Specifications** (to be created):
+- `MERMAID_ACCESSIBILITY_BEST_PRACTICES.md`
+- `MERMAID_TRANSFORMATION_BEST_PRACTICES.md`
 
 ## Sample Diagrams
 
