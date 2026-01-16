@@ -33,6 +33,8 @@ async function initializeApp() {
   
   // Set up event listeners
   attachEventListeners();
+  setupSplitter();
+  initializeThemeToggle();
   
   // Load any previously saved diagram from localStorage
   restoreLastDiagram();
@@ -208,8 +210,8 @@ function parseColor(color) {
 function attachEventListeners() {
   const sourceInput = document.getElementById('mermaid-source');
   const exportButton = document.getElementById('export-btn');
-  const themeToggle = document.getElementById('theme-toggle');
-  const shuffleExampleBtn = document.getElementById('shuffle-example-btn');
+  const themeToggleBtn = document.getElementById('theme-toggle-btn');
+  const randomBtn = document.getElementById('random-btn');
   const svgCode = document.getElementById('svg-code');
   const copySvgBtn = document.getElementById('copy-svg-btn');
   const editSvgToggle = document.getElementById('edit-svg-toggle');
@@ -227,14 +229,12 @@ function attachEventListeners() {
     exportButton.addEventListener('click', handleExport);
   }
   
-  if (themeToggle) {
-    themeToggle.addEventListener('change', (e) => {
-      document.documentElement.setAttribute('data-theme', e.target.checked ? 'dark' : 'light');
-    });
+  if (themeToggleBtn) {
+    themeToggleBtn.addEventListener('click', () => toggleTheme());
   }
 
-  if (shuffleExampleBtn) {
-    shuffleExampleBtn.addEventListener('click', async () => {
+  if (randomBtn) {
+    randomBtn.addEventListener('click', async () => {
       await loadRandomExampleIntoEditor();
       // Auto-render after loading
       await validateAndRender();
@@ -417,8 +417,8 @@ function showModal(message, tone = 'info') {
   function closeModal() {
     dialog.setAttribute('aria-hidden', 'true');
     overlay.setAttribute('hidden', '');
-    // Return focus to render button for good UX
-    document.getElementById('render-btn')?.focus();
+    // Return focus to the editor for good UX
+    document.getElementById('mermaid-source')?.focus();
     // Cleanup listeners
     overlay.removeEventListener('click', overlayHandler);
     document.removeEventListener('keydown', escHandler);
@@ -474,6 +474,82 @@ function showToast(message, tone = 'info', timeout = 4000) {
   setTimeout(() => {
     if (toast.parentNode === container) container.removeChild(toast);
   }, timeout);
+}
+
+/**
+ * Initialize theme toggle button with prefers-color-scheme fallback
+ */
+function initializeThemeToggle() {
+  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const existing = document.documentElement.getAttribute('data-theme');
+  const startTheme = existing || (prefersDark ? 'dark' : 'light');
+  setTheme(startTheme);
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'light';
+  setTheme(current === 'dark' ? 'light' : 'dark');
+}
+
+function setTheme(mode) {
+  const safeMode = mode === 'dark' ? 'dark' : 'light';
+  const btn = document.getElementById('theme-toggle-btn');
+  document.documentElement.setAttribute('data-theme', safeMode);
+  if (btn) {
+    btn.setAttribute('aria-pressed', safeMode === 'dark');
+    btn.textContent = safeMode === 'dark' ? '☾' : '☀︎';
+  }
+}
+
+/**
+ * Draggable splitter between Mermaid and SVG panes
+ */
+function setupSplitter() {
+  const container = document.querySelector('.code-split');
+  const splitter = document.getElementById('splitter');
+  if (!container || !splitter) return;
+
+  const min = 20;
+  const max = 80;
+
+  const setPosition = (pct) => {
+    const clamped = Math.min(max, Math.max(min, pct));
+    container.style.setProperty('--split-left', `${clamped}%`);
+    container.style.setProperty('--split-right', `${100 - clamped}%`);
+    splitter.setAttribute('aria-valuenow', clamped.toFixed(0));
+  };
+
+  const handlePointerMove = (clientX) => {
+    const rect = container.getBoundingClientRect();
+    const pct = ((clientX - rect.left) / rect.width) * 100;
+    setPosition(pct);
+  };
+
+  const startDrag = (startEvent) => {
+    startEvent.preventDefault();
+    const move = (ev) => handlePointerMove(ev.clientX);
+    const stop = () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', stop);
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', stop);
+  };
+
+  splitter.addEventListener('mousedown', startDrag);
+
+  splitter.addEventListener('keydown', (e) => {
+    const step = 4;
+    const current = Number(splitter.getAttribute('aria-valuenow')) || 50;
+    if (e.key === 'ArrowLeft') {
+      setPosition(current - step);
+      e.preventDefault();
+    }
+    if (e.key === 'ArrowRight') {
+      setPosition(current + step);
+      e.preventDefault();
+    }
+  });
 }
 
 /**

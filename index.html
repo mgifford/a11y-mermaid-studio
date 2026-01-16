@@ -15,52 +15,36 @@
   <a href="#main" class="skip-link">Skip to main content</a>
   
   <header>
-    <div class="container">
-      <h1>A11y Mermaid Studio</h1>
-      <p class="subtitle">Transform Mermaid diagrams into WCAG 2.2 AA-compliant, accessible SVGs</p>
+    <div class="container header-row">
+      <div>
+        <h1>A11y Mermaid Studio</h1>
+        <p class="subtitle">Transform Mermaid diagrams into WCAG 2.2 AA-compliant, accessible SVGs</p>
+      </div>
+      <div class="top-actions" aria-label="Quick actions">
+        <button id="random-btn" type="button" aria-label="Load a random example diagram">Random</button>
+        <button id="theme-toggle-btn" type="button" aria-pressed="false" aria-label="Toggle light and dark theme">☀︎ / ☾</button>
+      </div>
     </div>
   </header>
 
   <div class="container">
-    <div class="toolbar">
-      <button id="export-btn" type="button" aria-label="Export the rendered diagram as an SVG file">
-        Export SVG
-      </button>
-      <button id="shuffle-example-btn" type="button" aria-label="Load a random example diagram">
-        Load Random Example
-      </button>
-      
-      <div class="theme-toggle-container">
-        <label for="theme-toggle" id="theme-label">Dark mode:</label>
-        <div class="toggle-switch">
-          <input 
-            id="theme-toggle" 
-            type="checkbox" 
-            aria-labelledby="theme-label"
-            aria-describedby="theme-desc"
-          >
-          <span class="toggle-slider"></span>
-        </div>
-        <span id="theme-desc" class="sr-only">Toggle between light and dark themes for testing contrast</span>
-      </div>
-    </div>
 
     <div id="status" role="status" aria-live="polite" aria-atomic="true"></div>
 
     <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
 
     <main id="main">
-      <div class="main-grid">
-        <!-- Editor Section -->
-        <section class="editor-section" aria-labelledby="editor-title">
-          <h2 id="editor-title">Mermaid Source</h2>
-          <p>Enter your Mermaid diagram code. Must include <code>%%accTitle</code> and <code>%%accDescr</code> annotations. A random example will load if empty.</p>
-          
+      <section class="code-split" aria-label="Diagram source and generated SVG">
+        <section class="pane" id="mermaid-pane" aria-labelledby="editor-title">
+          <div class="pane-header">
+            <h2 id="editor-title">Mermaid Source</h2>
+            <p class="help-text">Live rendering with required <code>%%accTitle</code> and <code>%%accDescr</code>.</p>
+          </div>
           <textarea 
             id="mermaid-source"
             aria-label="Mermaid diagram source code with accessibility annotations"
             aria-describedby="editor-help"
-            placeholder="graph TD
+            placeholder="flowchart TD
     A[Start]
     B[Process]
     C[End]
@@ -69,7 +53,7 @@
 %%accTitle Workflow diagram
 %%accDescr Shows a simple three-step workflow from start to process to end"
           ></textarea>
-          
+          <div id="editor-error" class="editor-error" role="alert" aria-live="polite" aria-atomic="true"></div>
           <div id="editor-help" class="sr-only">
             Required annotations:
             %%accTitle - Brief title for the diagram
@@ -78,23 +62,41 @@
           </div>
         </section>
 
-        <!-- Preview Section -->
-        <section class="preview-section" aria-labelledby="preview-title">
-          <h2 id="preview-title">Accessible Preview</h2>
-          <p>Rendered diagram shown in both light and dark modes for contrast validation.</p>
-          
-          <div class="preview-split">
-            <div>
-              <h3 style="margin: 0 0 0.5rem 0; font-size: 14px; opacity: 0.8;">Light Mode</h3>
-              <div id="preview-light" class="preview-pane" role="img" aria-label="Diagram preview in light mode"></div>
-            </div>
-            <div>
-              <h3 style="margin: 0 0 0.5rem 0; font-size: 14px; opacity: 0.8;">Dark Mode</h3>
-              <div id="preview-dark" class="preview-pane" role="img" aria-label="Diagram preview in dark mode"></div>
+        <div id="splitter" class="splitter" role="separator" aria-label="Resize code panels" aria-orientation="vertical" aria-valuemin="20" aria-valuemax="80" aria-valuenow="50" tabindex="0"></div>
+
+        <section class="pane" id="svg-pane" aria-labelledby="svg-code-title">
+          <div class="pane-header">
+            <h2 id="svg-code-title">SVG Code</h2>
+            <div class="toggle-inline">
+              <label for="edit-svg-toggle" id="edit-svg-label">Enable SVG editing</label>
+              <input id="edit-svg-toggle" type="checkbox" aria-labelledby="edit-svg-label" aria-describedby="edit-svg-desc">
             </div>
           </div>
+          <p class="help-text">Generated accessible SVG. Edits update the preview only (not the Mermaid source).</p>
+          <span id="edit-svg-desc" class="sr-only">When enabled, you can directly edit the generated SVG code. Changes here will update the preview. This does not sync back to your Mermaid source.</span>
+          <textarea id="svg-code" aria-label="Generated accessible SVG code" spellcheck="false" readonly></textarea>
+          <div class="button-row">
+            <button id="copy-svg-btn" type="button" aria-label="Copy SVG code to clipboard">Copy SVG</button>
+            <button id="export-btn" type="button" aria-label="Export the rendered diagram as an SVG file">Export SVG</button>
+          </div>
         </section>
-      </div>
+      </section>
+
+      <section class="preview-section" aria-labelledby="preview-title">
+        <h2 id="preview-title">Accessible Preview</h2>
+        <p>Rendered diagram shown in both light and dark modes for contrast validation.</p>
+        
+        <div class="preview-split">
+          <div>
+            <h3 class="preview-label">Light Mode</h3>
+            <div id="preview-light" class="preview-pane" role="img" aria-label="Diagram preview in light mode"></div>
+          </div>
+          <div>
+            <h3 class="preview-label">Dark Mode</h3>
+            <div id="preview-dark" class="preview-pane" role="img" aria-label="Diagram preview in dark mode"></div>
+          </div>
+        </div>
+      </section>
 
       <!-- Modal: Accessibility Notice (deprecated; use toasts instead) -->
       <div id="modal-overlay" class="modal-overlay" hidden style="display: none !important;">
@@ -115,19 +117,6 @@
         <div id="samples-list" style="display: grid; gap: 1rem; margin-bottom: 2rem;">
           <!-- Sample buttons will be inserted here -->
         </div>
-      </section>
-
-      <!-- SVG Code Section -->
-      <section aria-labelledby="svg-code-title">
-        <h2 id="svg-code-title">SVG Code</h2>
-        <p>You can view the generated accessible SVG code below. Editing is optional and intended for advanced users.</p>
-        <div class="toolbar" style="margin-top: 0;">
-          <label for="edit-svg-toggle" id="edit-svg-label">Enable SVG editing (advanced)</label>
-          <input id="edit-svg-toggle" type="checkbox" aria-labelledby="edit-svg-label" aria-describedby="edit-svg-desc">
-          <span id="edit-svg-desc" class="sr-only">When enabled, you can directly edit the generated SVG code. Changes here will update the preview. This does not sync back to your Mermaid source.</span>
-          <button id="copy-svg-btn" type="button" aria-label="Copy SVG code to clipboard">Copy SVG</button>
-        </div>
-        <textarea id="svg-code" aria-label="Generated accessible SVG code" spellcheck="false" style="min-height: 240px;" readonly></textarea>
       </section>
     </main>
 
