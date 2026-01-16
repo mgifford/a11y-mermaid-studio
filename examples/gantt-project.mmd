@@ -1,0 +1,25 @@
+gantt
+    title Software Development Project
+    dateFormat YYYY-MM-DD
+    excludes weekends
+    
+    section Planning
+    Requirements gathering    :done, req, 2024-01-01, 2024-01-15
+    Architecture design        :done, arch, 2024-01-16, 2024-01-30
+    
+    section Development
+    Backend API development    :active, api, 2024-02-01, 30d
+    Frontend development       :crit, ui, 2024-02-15, 25d
+    Database setup            :done, db, 2024-02-01, 10d
+    
+    section Testing
+    Unit testing              :test, after api, 15d
+    Integration testing       :crit, after test, 10d
+    UAT                      :uat, after test, 12d
+    
+    section Deployment
+    Staging deployment        :milestone, stage, after test, 0d
+    Production deployment     :milestone, prod, after uat, 0d
+
+%%accTitle Software Development Project Timeline
+%%accDescr A Gantt chart showing the timeline and phases of a software development project, from requirements gathering through deployment.

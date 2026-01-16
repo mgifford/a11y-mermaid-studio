@@ -6,9 +6,12 @@
     { "id": "state-basic", "title": "State Diagram", "file": "state-basic.mmd", "type": "state" },
     { "id": "er-basic", "title": "Entity Relationship", "file": "er-basic.mmd", "type": "er" },
     { "id": "journey-basic", "title": "User Journey", "file": "journey-basic.mmd", "type": "journey" },
+    { "id": "journey-workday", "title": "User Journey (Working Day)", "file": "journey-workday.mmd", "type": "journey" },
+    { "id": "journey-support", "title": "User Journey (Support)", "file": "journey-support.mmd", "type": "journey" },
     { "id": "gantt-basic", "title": "Gantt Chart", "file": "gantt-basic.mmd", "type": "gantt" },
+    { "id": "gantt-project", "title": "Gantt (Software Project)", "file": "gantt-project.mmd", "type": "gantt" },
     { "id": "pie-basic", "title": "Pie Chart", "file": "pie-basic.mmd", "type": "pie" }
   ],
   "lastUpdated": "2026-01-16",
-  "version": "1.0"
+  "version": "1.1"
 }
