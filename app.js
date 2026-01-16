@@ -23,12 +23,21 @@ let xmlFormatter = null;
 let SVGO = null;
 
 const CONFIG = {
-  mermaidVersion: '10.6.1',
-  mermaidCDN: 'https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js',
+  mermaidVersion: '10.7.0',
+  // Bump to 10.7.x to support newer diagram types like xychart and timeline
+  mermaidCDN: 'https://cdn.jsdelivr.net/npm/mermaid@10.7.0/dist/mermaid.min.js',
   xmlFormatterCDN: 'https://esm.sh/xml-formatter@3.6.0',
   svgoCDN: 'https://esm.sh/svgo@3.2.0/dist/svgo.browser.js',
   examplesManifest: './examples/manifest.json',
 };
+
+const UNSUPPORTED_DIAGRAM_TYPES = new Set(['xychart']);
+
+function isDiagramTypeSupported(type) {
+  if (!type) return true;
+  const normalized = String(type).trim().toLowerCase();
+  return !UNSUPPORTED_DIAGRAM_TYPES.has(normalized);
+}
 
 const STATE = {
   svgMode: 'beautiful', // 'beautiful' or 'optimized'
@@ -162,7 +171,12 @@ async function renderMermaidDiagram(mermaidSource) {
     return svg;
   } catch (error) {
     console.error('[renderMermaid] Error:', error);
-    throw new Error(`Invalid Mermaid syntax: ${error.message}`);
+    const diagramType = detectDiagramType(mermaidSource) || 'unknown';
+    const baseMessage = error?.message || String(error) || 'Unknown render error';
+    const hint = diagramType === 'xychart'
+      ? 'XY chart requires the Mermaid xychart plugin; loading failed.'
+      : '';
+    throw new Error(`Invalid Mermaid syntax: ${baseMessage}${hint ? ` (${hint})` : ''}`);
   }
 }
 
@@ -289,6 +303,37 @@ function ensureViewBox(svgString) {
  * - Hide decorative shapes with aria-hidden="true"
  * - Hide arrows/connectors with aria-hidden="true"
  */
+function extractNodeLabel(node) {
+  // Collect potential text sources in order of reliability
+  const candidates = [];
+
+  // Text and tspans rendered by Mermaid
+  node.querySelectorAll('text, tspan').forEach(el => {
+    const value = el.textContent?.trim();
+    if (value) candidates.push(value);
+  });
+
+  // Any embedded HTML (Mermaid sometimes uses foreignObject for labels)
+  node.querySelectorAll('foreignObject').forEach(el => {
+    const value = el.textContent?.replace(/\s+/g, ' ').trim();
+    if (value) candidates.push(value);
+  });
+
+  // Attribute-based fallbacks
+  const ariaLabel = node.getAttribute('aria-label');
+  if (ariaLabel?.trim()) candidates.push(ariaLabel.trim());
+
+  const dataLabel = node.getAttribute('data-label');
+  if (dataLabel?.trim()) candidates.push(dataLabel.trim());
+
+  // Existing title, if present
+  const titleEl = node.querySelector('title');
+  if (titleEl?.textContent?.trim()) candidates.push(titleEl.textContent.trim());
+
+  // Return first non-empty, deduped string
+  return [...new Set(candidates)].join(' ').trim();
+}
+
 function applyFlowchartSemantics(svg) {
   // Detect if this is a flowchart by checking for Mermaid's flowchart structure
   const flowchartRoot = svg.querySelector('[id^="flowchart-"]');
@@ -321,11 +366,7 @@ function applyFlowchartSemantics(svg) {
     
     // Extract text content from the node
     const textElements = node.querySelectorAll('text');
-    let nodeText = '';
-    textElements.forEach(textEl => {
-      nodeText += textEl.textContent.trim() + ' ';
-    });
-    nodeText = nodeText.trim();
+    const nodeText = extractNodeLabel(node);
     
     console.log(`[Flowchart] Node ${index + 1}: "${nodeText}"`);
     
@@ -458,6 +499,8 @@ function detectDiagramType(source) {
     return 'timeline';
   } else if (firstLine.startsWith('xychart')) {
     return 'xychart';
+  } else if (firstLine.startsWith('erDiagram')) {
+    return 'erDiagram';
   } else if (firstLine.startsWith('stateDiagram')) {
     return 'stateDiagram';
   }
@@ -1192,7 +1235,16 @@ async function loadExamplesManifest() {
     }
     const manifest = await res.json();
     console.log('[loadExamplesManifest] Manifest loaded, examples count:', manifest.examples?.length || 0);
-    return manifest;
+
+    const supportedExamples = (manifest.examples || []).filter(ex => isDiagramTypeSupported(ex.type));
+    if ((manifest.examples || []).length !== supportedExamples.length) {
+      console.warn('[loadExamplesManifest] Unsupported examples removed from manifest');
+    }
+    if (!supportedExamples.length) {
+      throw new Error('No supported examples available');
+    }
+
+    return { ...manifest, examples: supportedExamples };
   } catch (error) {
     console.error('[loadExamplesManifest] Failed to load manifest:', error);
     throw error;
@@ -1272,6 +1324,15 @@ async function validateAndRender() {
       // Reflect auto-added annotations back into the textarea
       if (sourceInput) sourceInput.value = mermaidSource;
       showToast('Title and description added for accessibility.', 'info');
+    }
+
+    const diagramType = detectDiagramType(mermaidSource);
+    if (!isDiagramTypeSupported(diagramType)) {
+      const msg = `${diagramType || 'This'} diagram type requires a Mermaid plugin that is not bundled yet. Rendering is not supported.`;
+      editorError.textContent = msg;
+      editorError.classList.add('show');
+      showToast(msg, 'error');
+      return false;
     }
     
     // Render Mermaid

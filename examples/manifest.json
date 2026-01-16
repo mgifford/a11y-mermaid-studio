@@ -6,7 +6,6 @@
     { "id": "state-basic", "title": "State Diagram", "file": "state-basic.mmd", "type": "state" },
     { "id": "mindmap-basic", "title": "Mind Map", "file": "mindmap-basic.mmd", "type": "mindmap", "narrativeSupport": true },
     { "id": "timeline-basic", "title": "Timeline", "file": "timeline-basic.mmd", "type": "timeline" },
-    { "id": "xychart-basic", "title": "XY Chart", "file": "xychart-basic.mmd", "type": "xychart" },
     { "id": "er-basic", "title": "Entity Relationship", "file": "er-basic.mmd", "type": "er" },
     { "id": "journey-basic", "title": "User Journey", "file": "journey-basic.mmd", "type": "journey" },
     { "id": "journey-workday", "title": "User Journey (Working Day)", "file": "journey-workday.mmd", "type": "journey" },
