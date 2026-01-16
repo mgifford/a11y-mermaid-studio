@@ -149,13 +149,19 @@ async function loadSVGO() {
  */
 async function renderMermaidDiagram(mermaidSource) {
   try {
-    console.log('[Mermaid] Rendering diagram from source, length:', mermaidSource.length);
+    console.log('[renderMermaid] Starting render, source length:', mermaidSource.length);
+    console.log('[renderMermaid] First 100 chars:', mermaidSource.substring(0, 100));
+    
+    if (!window.mermaid) {
+      throw new Error('Mermaid library not loaded');
+    }
+    
     const { svg } = await window.mermaid.render('mermaid-diagram', mermaidSource);
-    console.log('[Mermaid] Rendered SVG length:', svg.length);
-    console.log('[Mermaid] SVG preview:', svg.substring(0, 200) + '...');
+    console.log('[renderMermaid] Success! SVG length:', svg.length);
+    console.log('[renderMermaid] SVG preview:', svg.substring(0, 150) + '...');
     return svg;
   } catch (error) {
-    console.error('Mermaid render error:', error);
+    console.error('[renderMermaid] Error:', error);
     throw new Error(`Invalid Mermaid syntax: ${error.message}`);
   }
 }
@@ -917,9 +923,19 @@ function attachEventListeners() {
 
 /** Load examples manifest */
 async function loadExamplesManifest() {
-  const res = await fetch(CONFIG.examplesManifest, { cache: 'no-store' });
-  if (!res.ok) throw new Error('Failed to load examples manifest');
-  return res.json();
+  try {
+    console.log('[loadExamplesManifest] Fetching manifest from:', CONFIG.examplesManifest);
+    const res = await fetch(CONFIG.examplesManifest, { cache: 'no-store' });
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status} fetching manifest`);
+    }
+    const manifest = await res.json();
+    console.log('[loadExamplesManifest] Manifest loaded, examples count:', manifest.examples?.length || 0);
+    return manifest;
+  } catch (error) {
+    console.error('[loadExamplesManifest] Failed to load manifest:', error);
+    throw error;
+  }
 }
 
 /** Pick a random example entry */
@@ -932,9 +948,19 @@ function pickRandomExample(manifest) {
 
 /** Fetch example content by file */
 async function fetchExample(file) {
-  const res = await fetch(`./examples/${file}`, { cache: 'no-store' });
-  if (!res.ok) throw new Error(`Failed to load example: ${file}`);
-  return res.text();
+  try {
+    console.log('[fetchExample] Fetching:', `./examples/${file}`);
+    const res = await fetch(`./examples/${file}`, { cache: 'no-store' });
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status} fetching ${file}`);
+    }
+    const content = await res.text();
+    console.log('[fetchExample] Loaded example, length:', content.length);
+    return content;
+  } catch (error) {
+    console.error('[fetchExample] Failed to load example:', file, error);
+    throw error;
+  }
 }
 
 /** Load a random example into the editor */
@@ -1528,11 +1554,18 @@ function saveDiagramToStorage(source) {
  * Restore last diagram from localStorage
  */
 function restoreLastDiagram() {
-  const lastDiagram = localStorage.getItem('lastDiagram');
-  const sourceInput = document.getElementById('mermaid-source');
-  
-  if (lastDiagram && sourceInput) {
-    sourceInput.value = lastDiagram;
+  try {
+    const lastDiagram = localStorage.getItem('lastDiagram');
+    const sourceInput = document.getElementById('mermaid-source');
+    
+    if (lastDiagram && lastDiagram.trim() && sourceInput) {
+      console.log('[restoreLastDiagram] Restoring saved diagram, length:', lastDiagram.length);
+      sourceInput.value = lastDiagram;
+    } else {
+      console.log('[restoreLastDiagram] No saved diagram found or storage empty');
+    }
+  } catch (e) {
+    console.warn('[restoreLastDiagram] Could not restore from localStorage:', e);
   }
 }
 
