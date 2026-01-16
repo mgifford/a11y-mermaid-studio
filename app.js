@@ -383,6 +383,12 @@ function generateDiagramNarrative(mermaidSource, metadata) {
     case 'mindmap':
       narrative += generateMindmapNarrative(mermaidSource);
       break;
+    case 'timeline':
+      narrative += generateTimelineNarrative(mermaidSource);
+      break;
+    case 'xychart':
+      narrative += generateXyChartNarrative(mermaidSource);
+      break;
     default:
       narrative += `<p>This is a ${diagramType} diagram.</p>`;
   }
@@ -411,6 +417,12 @@ function detectDiagramType(source) {
     return 'journey';
   } else if (firstLine.startsWith('mindmap')) {
     return 'mindmap';
+  } else if (firstLine.startsWith('timeline')) {
+    return 'timeline';
+  } else if (firstLine.startsWith('xychart')) {
+    return 'xychart';
+  } else if (firstLine.startsWith('stateDiagram')) {
+    return 'stateDiagram';
   }
   
   return 'unknown';
@@ -857,6 +869,122 @@ function generateMindmapNarrative(source) {
     });
   } else {
     narrative += '<p><em>Empty mind map structure</em></p>\n';
+  }
+  
+  return narrative;
+}
+
+/**
+ * Generate narrative for Timeline diagrams
+ * Timeline format: {time period} : {event}
+ */
+function generateTimelineNarrative(source) {
+  let narrative = '<p><strong>Timeline Events:</strong></p>\n';
+  
+  const lines = source.split('\n')
+    .filter(line => !line.trim().startsWith('%%') && !line.trim().startsWith('--'))
+    .filter(line => line.trim().length > 0)
+    .slice(1); // Skip "timeline" declaration
+  
+  let currentSection = '';
+  let events = [];
+  
+  lines.forEach(line => {
+    const trimmed = line.trim();
+    
+    // Check for section headers (format: "section : section name")
+    if (trimmed.includes('section') && trimmed.includes(':')) {
+      if (events.length > 0) {
+        // Render previous section
+        if (currentSection) {
+          narrative += `<h4>${escapeHtml(currentSection)}</h4>\n`;
+        }
+        narrative += '<ul>\n';
+        events.forEach(event => {
+          narrative += `<li>${escapeHtml(event)}</li>\n`;
+        });
+        narrative += '</ul>\n';
+        events = [];
+      }
+      currentSection = trimmed.split(':').slice(1).join(':').trim();
+    } else if (trimmed.includes(':')) {
+      // Parse event: "2026-01 : Event Name"
+      const parts = trimmed.split(':');
+      const period = parts[0].trim();
+      const eventName = parts.slice(1).join(':').trim();
+      const displayEvent = eventName ? `${period}: ${eventName}` : period;
+      events.push(displayEvent);
+    }
+  });
+  
+  // Render final section
+  if (events.length > 0) {
+    if (currentSection) {
+      narrative += `<h4>${escapeHtml(currentSection)}</h4>\n`;
+    }
+    narrative += '<ul>\n';
+    events.forEach(event => {
+      narrative += `<li>${escapeHtml(event)}</li>\n`;
+    });
+    narrative += '</ul>\n';
+  }
+  
+  if (lines.length === 0) {
+    narrative += '<p><em>Empty timeline</em></p>\n';
+  }
+  
+  return narrative;
+}
+
+/**
+ * Generate narrative for XY Chart diagrams
+ * XY charts display data with x and y axes
+ */
+function generateXyChartNarrative(source) {
+  let narrative = '<p><strong>Chart Data:</strong></p>\n';
+  
+  const lines = source.split('\n')
+    .filter(line => !line.trim().startsWith('%%'))
+    .filter(line => line.trim().length > 0);
+  
+  let xLabel = 'X-Axis';
+  let yLabel = 'Y-Axis';
+  let datasets = [];
+  
+  lines.forEach(line => {
+    const trimmed = line.trim();
+    
+    // Parse x-axis config: "x-axis [val1, val2, ...]" or "x-axis 0 --> 100"
+    if (trimmed.startsWith('x-axis')) {
+      const rest = trimmed.replace('x-axis', '').trim();
+      xLabel = rest || 'X-Axis';
+    }
+    // Parse y-axis config: "y-axis [val1, val2, ...]" or "y-axis 0 --> 5000"
+    else if (trimmed.startsWith('y-axis')) {
+      const rest = trimmed.replace('y-axis', '').trim();
+      yLabel = rest || 'Y-Axis';
+    }
+    // Parse data: "line [val1, val2, ...]" or "bar [val1, val2, ...]"
+    else if (trimmed.startsWith('line') || trimmed.startsWith('bar')) {
+      const match = trimmed.match(/^(line|bar)\s+(.+)$/i);
+      if (match) {
+        const type = match[1].toLowerCase();
+        const dataStr = match[2];
+        datasets.push({ type, dataStr });
+      }
+    }
+  });
+  
+  // Render summary
+  narrative += `<p>Axes: ${escapeHtml(xLabel)} vs ${escapeHtml(yLabel)}</p>\n`;
+  
+  if (datasets.length > 0) {
+    narrative += '<p><strong>Datasets:</strong></p>\n<ul>\n';
+    datasets.forEach(dataset => {
+      const label = dataset.type.charAt(0).toUpperCase() + dataset.type.slice(1);
+      narrative += `<li>${label}: ${escapeHtml(dataset.dataStr)}</li>\n`;
+    });
+    narrative += '</ul>\n';
   }
   
   return narrative;
