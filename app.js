@@ -19,6 +19,7 @@
 const CONFIG = {
   mermaidVersion: '10.6.1',
   mermaidCDN: 'https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js',
+  examplesManifest: './examples/manifest.json',
 };
 
 /**
@@ -35,6 +36,18 @@ async function initializeApp() {
   
   // Load any previously saved diagram from localStorage
   restoreLastDiagram();
+
+  // If editor is empty after restore, load a random example automatically
+  const sourceInput = document.getElementById('mermaid-source');
+  if (sourceInput && !sourceInput.value.trim()) {
+    try {
+      await loadRandomExampleIntoEditor();
+      // Auto-render after loading example
+      await handleRender();
+    } catch (e) {
+      console.warn('Could not load example:', e);
+    }
+  }
   
   console.log('Application ready');
 }
@@ -197,6 +210,7 @@ function attachEventListeners() {
   const renderButton = document.getElementById('render-btn');
   const exportButton = document.getElementById('export-btn');
   const themeToggle = document.getElementById('theme-toggle');
+  const shuffleExampleBtn = document.getElementById('shuffle-example-btn');
   const svgCode = document.getElementById('svg-code');
   const copySvgBtn = document.getElementById('copy-svg-btn');
   const editSvgToggle = document.getElementById('edit-svg-toggle');
@@ -218,6 +232,13 @@ function attachEventListeners() {
   if (themeToggle) {
     themeToggle.addEventListener('change', (e) => {
       document.documentElement.setAttribute('data-theme', e.target.checked ? 'dark' : 'light');
+    });
+  }
+
+  if (shuffleExampleBtn) {
+    shuffleExampleBtn.addEventListener('click', async () => {
+      await loadRandomExampleIntoEditor();
+      await handleRender();
     });
   }
 
@@ -245,6 +266,40 @@ function attachEventListeners() {
         showError('Invalid SVG code. Please fix errors or disable editing.');
       }
     });
+  }
+}
+
+/** Load examples manifest */
+async function loadExamplesManifest() {
+  const res = await fetch(CONFIG.examplesManifest, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to load examples manifest');
+  return res.json();
+}
+
+/** Pick a random example entry */
+function pickRandomExample(manifest) {
+  const list = manifest.examples || [];
+  if (!list.length) throw new Error('No examples available');
+  const idx = Math.floor(Math.random() * list.length);
+  return list[idx];
+}
+
+/** Fetch example content by file */
+async function fetchExample(file) {
+  const res = await fetch(`./examples/${file}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to load example: ${file}`);
+  return res.text();
+}
+
+/** Load a random example into the editor */
+async function loadRandomExampleIntoEditor() {
+  const manifest = await loadExamplesManifest();
+  const example = pickRandomExample(manifest);
+  const content = await fetchExample(example.file);
+  const sourceInput = document.getElementById('mermaid-source');
+  if (sourceInput) {
+    sourceInput.value = content.trim();
+    saveDiagramToStorage(sourceInput.value);
   }
 }
 

@@ -1,0 +1,8 @@
+stateDiagram-v2
+  [*] --> Idle
+  Idle --> Active: Start
+  Active --> Idle: Stop
+  Active --> [*]
+
+%%accTitle State Diagram Example
+%%accDescr A simple state machine from Idle to Active and back to Idle, with start and stop transitions.

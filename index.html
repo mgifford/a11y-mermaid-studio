@@ -29,6 +29,9 @@
       <button id="export-btn" type="button" aria-label="Export the rendered diagram as an SVG file">
         Export SVG
       </button>
+      <button id="shuffle-example-btn" type="button" aria-label="Load a random example diagram">
+        Load Random Example
+      </button>
       
       <div class="theme-toggle-container">
         <label for="theme-toggle" id="theme-label">Dark mode:</label>
@@ -52,7 +55,7 @@
         <!-- Editor Section -->
         <section class="editor-section" aria-labelledby="editor-title">
           <h2 id="editor-title">Mermaid Source</h2>
-          <p>Enter your Mermaid diagram code. Must include <code>%%accTitle</code> and <code>%%accDescr</code> annotations.</p>
+          <p>Enter your Mermaid diagram code. Must include <code>%%accTitle</code> and <code>%%accDescr</code> annotations. A random example will load if empty.</p>
           
           <textarea 
             id="mermaid-source"

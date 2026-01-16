@@ -1,0 +1,12 @@
+sequenceDiagram
+  participant User
+  participant App
+  participant API
+
+  User->>App: Clicks login
+  App->>API: POST /login
+  API-->>App: 200 OK (token)
+  App-->>User: Logged in
+
+%%accTitle Sequence Diagram Example
+%%accDescr A sequence diagram showing a user clicking login, the app calling the API, receiving a token, and confirming login.

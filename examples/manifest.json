@@ -1,0 +1,14 @@
+{
+  "examples": [
+    { "id": "flowchart-basic", "title": "Flowchart (Basic)", "file": "flowchart-basic.mmd", "type": "flowchart" },
+    { "id": "sequence-basic", "title": "Sequence Diagram", "file": "sequence-basic.mmd", "type": "sequence" },
+    { "id": "class-basic", "title": "Class Diagram", "file": "class-basic.mmd", "type": "class" },
+    { "id": "state-basic", "title": "State Diagram", "file": "state-basic.mmd", "type": "state" },
+    { "id": "er-basic", "title": "Entity Relationship", "file": "er-basic.mmd", "type": "er" },
+    { "id": "journey-basic", "title": "User Journey", "file": "journey-basic.mmd", "type": "journey" },
+    { "id": "gantt-basic", "title": "Gantt Chart", "file": "gantt-basic.mmd", "type": "gantt" },
+    { "id": "pie-basic", "title": "Pie Chart", "file": "pie-basic.mmd", "type": "pie" }
+  ],
+  "lastUpdated": "2026-01-16",
+  "version": "1.0"
+}
