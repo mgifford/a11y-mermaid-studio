@@ -6,13 +6,20 @@
  * Validates critical user workflows and Mermaid transformations
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'fs';
 import path from 'path';
 
 const appJs = readFileSync(path.resolve(process.cwd(), 'app.js'), 'utf8');
 
 describe('Feature Tests', () => {
+  beforeEach(() => {
+    // Clear localStorage cache before each test to avoid stale data
+    if (typeof localStorage !== 'undefined') {
+      localStorage.clear();
+    }
+  });
+
   it('should validate required metadata', () => {
     // Features: accTitle and accDescr are required
     expect(true).toBe(true);

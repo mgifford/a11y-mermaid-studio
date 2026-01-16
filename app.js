@@ -913,6 +913,17 @@ function parseSvgSafely(svgString) {
 }
 
 /**
+ * Clear all cached data from localStorage
+ */
+function clearStorageCache() {
+  try {
+    localStorage.removeItem('lastDiagram');
+  } catch (e) {
+    console.warn('Could not clear localStorage:', e);
+  }
+}
+
+/**
  * Save diagram source to localStorage
  */
 function saveDiagramToStorage(source) {

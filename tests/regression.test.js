@@ -6,7 +6,7 @@
  * Prevents specific bugs that previously broke the application
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'fs';
 import path from 'path';
 
@@ -14,6 +14,13 @@ const appJs = readFileSync(path.resolve(process.cwd(), 'app.js'), 'utf8');
 const indexHtml = readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf8');
 
 describe('Regression Tests', () => {
+  beforeEach(() => {
+    // Clear localStorage cache before each test to avoid stale data
+    if (typeof localStorage !== 'undefined') {
+      localStorage.clear();
+    }
+  });
+
   it('should initialize without errors', () => {
     expect(typeof window).toBe('object');
   });

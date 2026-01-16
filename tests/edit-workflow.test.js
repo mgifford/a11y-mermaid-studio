@@ -12,13 +12,20 @@
  * 4. Update the SVG code display (Beautiful/Optimized)
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'fs';
 import path from 'path';
 
 const appJs = readFileSync(path.resolve(process.cwd(), 'app.js'), 'utf8');
 
 describe('Edit Workflow Tests', () => {
+  beforeEach(() => {
+    // Clear localStorage cache before each test to avoid stale data
+    if (typeof localStorage !== 'undefined') {
+      localStorage.clear();
+    }
+  });
+
   it('should have validateAndRender function that updates preview on content changes', () => {
     // Core requirement: live editing of Mermaid source triggers re-render
     expect(appJs).toContain('async function validateAndRender()');

@@ -6,7 +6,7 @@
  * DOM structure and component validation
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'fs';
 import path from 'path';
 import { JSDOM } from 'jsdom';
@@ -16,6 +16,13 @@ const dom = new JSDOM(html);
 const doc = dom.window.document;
 
 describe('UI Tests', () => {
+  beforeEach(() => {
+    // Clear localStorage cache before each test to avoid stale data
+    if (typeof localStorage !== 'undefined') {
+      localStorage.clear();
+    }
+  });
+
   it('should render semantic HTML structure', () => {
     // Header, main, footer structure required
     expect(true).toBe(true);

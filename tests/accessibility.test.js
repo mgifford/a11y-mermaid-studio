@@ -6,9 +6,16 @@
  * Validates semantic output and ARIA compliance
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 
 describe('Accessibility Tests', () => {
+  beforeEach(() => {
+    // Clear localStorage cache before each test to avoid stale data
+    if (typeof localStorage !== 'undefined') {
+      localStorage.clear();
+    }
+  });
+
   it('should apply role="img" to SVG root', () => {
     // Pattern 11: SVG must have role="img"
     expect(true).toBe(true);
