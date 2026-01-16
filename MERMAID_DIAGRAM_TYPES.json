@@ -1,0 +1,531 @@
+{
+  "version": "1.0.0",
+  "title": "Mermaid Diagram Types Reference",
+  "description": "Complete reference for all Mermaid diagram types, their syntax organization, and narrative generation readiness",
+  "documentationUrl": "https://mermaid.js.org/intro/syntax-reference.html",
+  "diagramTypes": {
+    "flowchart": {
+      "id": "flowchart",
+      "name": "Flowchart",
+      "aliases": ["graph", "flowchart LR|TB|BT|RL|TD"],
+      "documentation": "https://mermaid.js.org/syntax/flowchart.html",
+      "description": "Visualizes logic flows, processes, and decision points",
+      "primaryElements": ["nodes", "edges", "labels"],
+      "syntaxKeyword": "flowchart",
+      "directionOptions": ["LR", "RL", "TB", "BT", "TD"],
+      "nodeShapes": {
+        "rectangle": "A[Text]",
+        "roundEdges": "A(Text)",
+        "stadium": "A([Text])",
+        "subroutine": "A[[Text]]",
+        "cylindrical": "A[(Text)]",
+        "circle": "A((Text))",
+        "asymmetric": "A>Text]",
+        "rhombus": "A{Text}",
+        "hexagon": "A{{Text}}",
+        "parallelogram": "A[/Text/]",
+        "trapezoid": "A[\\Text\\]"
+      },
+      "edgeTypes": ["-->", "---", "-.-", "==>", "~~~"],
+      "subgraphs": true,
+      "narrative": {
+        "implemented": true,
+        "generator": "generateFlowchartNarrative",
+        "outputs": ["start node", "decisions", "connections", "stats"]
+      }
+    },
+    "sequence": {
+      "id": "sequence",
+      "name": "Sequence Diagram",
+      "aliases": ["sequenceDiagram"],
+      "documentation": "https://mermaid.js.org/syntax/sequenceDiagram.html",
+      "description": "Shows interactions between actors over time, messages, and lifelines",
+      "primaryElements": ["participants", "messages", "activations", "notes", "loops"],
+      "syntaxKeyword": "sequenceDiagram",
+      "participantTypes": {
+        "default": "participant",
+        "actor": "actor",
+        "boundary": "participant X@{ \"type\": \"boundary\" }",
+        "control": "participant X@{ \"type\": \"control\" }",
+        "entity": "participant X@{ \"type\": \"entity\" }",
+        "database": "participant X@{ \"type\": \"database\" }",
+        "collections": "participant X@{ \"type\": \"collections\" }",
+        "queue": "participant X@{ \"type\": \"queue\" }"
+      },
+      "arrowTypes": ["->", "-->", "->>", "-->>", "<<-->>", "-x", "--x", "-)", "--)"],
+      "controlStructures": ["loop", "alt/else", "opt", "par/and", "critical/option", "break", "rect"],
+      "features": ["autonumber", "notes", "activate/deactivate", "actor menus", "grouping"],
+      "narrative": {
+        "implemented": false,
+        "reason": "Requires interaction tracking and temporal ordering",
+        "complexity": "high"
+      }
+    },
+    "state": {
+      "id": "state",
+      "name": "State Diagram",
+      "aliases": ["stateDiagram", "stateDiagram-v2"],
+      "documentation": "https://mermaid.js.org/syntax/stateDiagram.html",
+      "description": "Depicts states and transitions showing system behavior",
+      "primaryElements": ["states", "transitions", "start/end markers"],
+      "syntaxKeyword": "stateDiagram-v2",
+      "stateTypes": {
+        "simple": "StateId",
+        "described": "state \"Description\" as sid",
+        "withColon": "sid : Description",
+        "composite": "state First { [*] --> Second }"
+      },
+      "transitionMarker": "-->",
+      "startEnd": "[*]",
+      "specialStates": {
+        "choice": "<<choice>>",
+        "fork": "<<fork>>",
+        "join": "<<join>>"
+      },
+      "directionSupport": true,
+      "concurrency": "-- (double dash separator)",
+      "narrative": {
+        "implemented": false,
+        "reason": "Requires state transition analysis and condition parsing",
+        "complexity": "medium"
+      }
+    },
+    "class": {
+      "id": "class",
+      "name": "Class Diagram",
+      "aliases": ["classDiagram"],
+      "documentation": "https://mermaid.js.org/syntax/classDiagram.html",
+      "description": "Models object-oriented systems with classes and relationships",
+      "primaryElements": ["classes", "methods", "properties", "relationships"],
+      "syntaxKeyword": "classDiagram",
+      "relationshipTypes": {
+        "inheritance": "<|--",
+        "composition": "*--",
+        "aggregation": "o--",
+        "association": "--",
+        "realization": "<|.."
+      },
+      "classMembers": ["properties", "methods"],
+      "visibility": ["+", "-", "#", "~"],
+      "narrative": {
+        "implemented": true,
+        "generator": "generateClassDiagramNarrative",
+        "outputs": ["class list", "methods", "properties", "relationships"]
+      }
+    },
+    "entity": {
+      "id": "entity",
+      "name": "Entity Relationship Diagram",
+      "aliases": ["erDiagram"],
+      "documentation": "https://mermaid.js.org/syntax/entityRelationshipDiagram.html",
+      "description": "Models data entities and their relationships",
+      "primaryElements": ["entities", "relationships", "cardinality"],
+      "syntaxKeyword": "erDiagram",
+      "relationshipCardinality": {
+        "zeroOrOne": "|o",
+        "exactlyOne": "||",
+        "zeroOrMore": "}o",
+        "oneOrMore": "}|"
+      },
+      "relationshipTypes": {
+        "identifying": "--",
+        "nonIdentifying": "..",
+        "withLabel": "relationship text in quotes"
+      },
+      "syntax": "ENTITY }|..|{ OTHER_ENTITY : relationship_label",
+      "narrative": {
+        "implemented": false,
+        "reason": "Similar to class diagrams, focus on data entities",
+        "complexity": "medium"
+      }
+    },
+    "journey": {
+      "id": "journey",
+      "name": "User Journey",
+      "aliases": ["journey"],
+      "documentation": "https://mermaid.js.org/syntax/userJourney.html",
+      "description": "Depicts user steps, experience satisfaction, and actor involvement",
+      "primaryElements": ["sections", "tasks", "scores", "actors"],
+      "syntaxKeyword": "journey",
+      "taskFormat": "Task name: <score>: <actors>",
+      "scoreRange": "1-5 (satisfaction level)",
+      "actors": "comma-separated participant names",
+      "narrative": {
+        "implemented": true,
+        "generator": "generateUserJourneyNarrative",
+        "outputs": ["journey title", "sections as steps", "satisfaction levels", "actors involved"],
+        "satisfaction": "😊 positive (4-5), 😐 neutral (3), 😞 negative (1-2)"
+      }
+    },
+    "gantt": {
+      "id": "gantt",
+      "name": "Gantt Chart",
+      "aliases": ["gantt"],
+      "documentation": "https://mermaid.js.org/syntax/gantt.html",
+      "description": "Visualizes project timeline, tasks, milestones, and dependencies",
+      "primaryElements": ["sections", "tasks", "milestones", "dependencies"],
+      "syntaxKeyword": "gantt",
+      "taskFormat": "Task name : [tags,] [id,] [start,] [end/duration]",
+      "taskTags": ["active", "done", "crit", "milestone"],
+      "dateFormat": "YYYY-MM-DD (configurable)",
+      "excludes": ["weekends", "specific dates", "days of week"],
+      "features": ["milestones", "vertical markers", "compact mode", "section grouping"],
+      "narrative": {
+        "implemented": true,
+        "generator": "generateGanttNarrative",
+        "outputs": ["project title", "sections with tasks", "task status tags"],
+        "tagMapping": "done=completed, active=in progress, crit=critical"
+      }
+    },
+    "pie": {
+      "id": "pie",
+      "name": "Pie Chart",
+      "aliases": ["pie"],
+      "documentation": "https://mermaid.js.org/syntax/pie.html",
+      "description": "Shows proportional distribution of data values",
+      "primaryElements": ["labels", "values"],
+      "syntaxKeyword": "pie",
+      "dataFormat": "\"Label\" : value",
+      "valueType": "positive numbers (up to 2 decimals)",
+      "configuration": ["textPosition", "showData"],
+      "narrative": {
+        "implemented": true,
+        "generator": "generatePieNarrative",
+        "outputs": ["data breakdown", "percentages", "total sum"],
+        "sorting": "descending by value"
+      }
+    },
+    "quadrant": {
+      "id": "quadrant",
+      "name": "Quadrant Chart",
+      "aliases": ["quadrantChart"],
+      "documentation": "https://mermaid.js.org/syntax/quadrantChart.html",
+      "description": "2x2 matrix for categorizing items by two dimensions",
+      "primaryElements": ["quadrants", "items", "axes"],
+      "syntaxKeyword": "quadrantChart",
+      "structure": "4 quadrants with x/y axes",
+      "narrative": {
+        "implemented": false,
+        "reason": "Requires 2D axis parsing and quadrant labeling",
+        "complexity": "low"
+      }
+    },
+    "requirement": {
+      "id": "requirement",
+      "name": "Requirement Diagram",
+      "aliases": ["requirementDiagram"],
+      "documentation": "https://mermaid.js.org/syntax/requirementDiagram.html",
+      "description": "Traces requirements, satisfactions, and verifications",
+      "primaryElements": ["requirements", "elements", "relationships"],
+      "syntaxKeyword": "requirement",
+      "requirementTypes": ["functional", "performance", "interface", "design", "physical", "other"],
+      "relationshipTypes": ["contains", "copies", "derives", "satisfies", "verifies", "refines"],
+      "narrative": {
+        "implemented": false,
+        "reason": "Complex requirement tracing and relationships",
+        "complexity": "high"
+      }
+    },
+    "gitgraph": {
+      "id": "gitgraph",
+      "name": "Git Graph (Git Diagram)",
+      "aliases": ["gitGraph"],
+      "documentation": "https://mermaid.js.org/syntax/gitgraph.html",
+      "description": "Visualizes Git branching, commits, and merge workflows",
+      "primaryElements": ["branches", "commits", "merges", "tags"],
+      "syntaxKeyword": "gitGraph",
+      "operations": ["commit", "branch", "checkout", "merge", "cherry-pick", "reset"],
+      "narrative": {
+        "implemented": false,
+        "reason": "Requires commit history and branch tracking",
+        "complexity": "medium"
+      }
+    },
+    "c4": {
+      "id": "c4",
+      "name": "C4 Diagram",
+      "aliases": ["C4Context", "C4Container", "C4Component", "C4Deployment"],
+      "documentation": "https://mermaid.js.org/syntax/c4.html",
+      "description": "Architecture diagrams using C4 model (Context, Container, Component, Code)",
+      "primaryElements": ["systems", "containers", "components", "relationships"],
+      "syntaxKeyword": "C4Context | C4Container | C4Component",
+      "levels": ["context", "container", "component", "code"],
+      "narrative": {
+        "implemented": false,
+        "reason": "Complex architecture relationship parsing",
+        "complexity": "high"
+      }
+    },
+    "mindmap": {
+      "id": "mindmap",
+      "name": "Mind Map",
+      "aliases": ["mindmap"],
+      "documentation": "https://mermaid.js.org/syntax/mindmap.html",
+      "description": "Hierarchical brainstorming and idea organization",
+      "primaryElements": ["root", "branches", "subbranches"],
+      "syntaxKeyword": "mindmap",
+      "structure": "Hierarchical tree with central root",
+      "indentation": "Defines hierarchy depth",
+      "narrative": {
+        "implemented": false,
+        "reason": "Similar to flowchart but tree-structured",
+        "complexity": "low"
+      }
+    },
+    "timeline": {
+      "id": "timeline",
+      "name": "Timeline",
+      "aliases": ["timeline"],
+      "documentation": "https://mermaid.js.org/syntax/timeline.html",
+      "description": "Chronological events and milestones",
+      "primaryElements": ["time periods", "events", "sections"],
+      "syntaxKeyword": "timeline",
+      "structure": "Chronological ordering of events",
+      "narrative": {
+        "implemented": false,
+        "reason": "Requires temporal parsing similar to gantt",
+        "complexity": "low"
+      }
+    },
+    "zenuml": {
+      "id": "zenuml",
+      "name": "ZenUML",
+      "aliases": ["zenuml"],
+      "documentation": "https://mermaid.js.org/syntax/zenuml.html",
+      "description": "UML-like sequence diagrams with indentation-based syntax",
+      "primaryElements": ["actors", "interactions", "logic"],
+      "syntaxKeyword": "zenuml",
+      "style": "Indentation-based sequence diagram variant",
+      "narrative": {
+        "implemented": false,
+        "reason": "Sequence diagram variant with different syntax",
+        "complexity": "high"
+      }
+    },
+    "sankey": {
+      "id": "sankey",
+      "name": "Sankey Diagram",
+      "aliases": ["sankey"],
+      "documentation": "https://mermaid.js.org/syntax/sankey.html",
+      "description": "Flow of quantities through systems (energy, data, money)",
+      "primaryElements": ["sources", "targets", "flows", "values"],
+      "syntaxKeyword": "sankey",
+      "structure": "Source -> Target : value",
+      "narrative": {
+        "implemented": false,
+        "reason": "Requires flow value tracking and hierarchy",
+        "complexity": "medium"
+      }
+    },
+    "xychart": {
+      "id": "xychart",
+      "name": "XY Chart",
+      "aliases": ["xychart-beta"],
+      "documentation": "https://mermaid.js.org/syntax/xyChart.html",
+      "description": "Line and bar charts with X/Y axes",
+      "primaryElements": ["data series", "axes", "points"],
+      "syntaxKeyword": "xychart-beta",
+      "chartTypes": ["line", "bar"],
+      "narrative": {
+        "implemented": false,
+        "reason": "Data-driven chart rendering",
+        "complexity": "medium"
+      }
+    },
+    "block": {
+      "id": "block",
+      "name": "Block Diagram",
+      "aliases": ["block"],
+      "documentation": "https://mermaid.js.org/syntax/block.html",
+      "description": "System design with connected blocks (hierarchical)",
+      "primaryElements": ["blocks", "connections", "labels"],
+      "syntaxKeyword": "block",
+      "narrative": {
+        "implemented": false,
+        "reason": "Complex block relationships and hierarchy",
+        "complexity": "medium"
+      }
+    },
+    "packet": {
+      "id": "packet",
+      "name": "Packet Diagram",
+      "aliases": ["packet"],
+      "documentation": "https://mermaid.js.org/syntax/packet.html",
+      "description": "Network packet structure and fields",
+      "primaryElements": ["packet", "fields", "sizes"],
+      "syntaxKeyword": "packet",
+      "narrative": {
+        "implemented": false,
+        "reason": "Technical protocol field documentation",
+        "complexity": "low"
+      }
+    },
+    "kanban": {
+      "id": "kanban",
+      "name": "Kanban Board",
+      "aliases": ["kanban"],
+      "documentation": "https://mermaid.js.org/syntax/kanban.html",
+      "description": "Task management columns and cards",
+      "primaryElements": ["sections", "cards"],
+      "syntaxKeyword": "kanban",
+      "narrative": {
+        "implemented": false,
+        "reason": "Similar to journey; lists tasks in columns",
+        "complexity": "low"
+      }
+    },
+    "architecture": {
+      "id": "architecture",
+      "name": "Architecture Diagram",
+      "aliases": ["architecture"],
+      "documentation": "https://mermaid.js.org/syntax/architecture.html",
+      "description": "System design with nested groups and connections",
+      "primaryElements": ["groups", "components", "connections"],
+      "syntaxKeyword": "architecture",
+      "narrative": {
+        "implemented": false,
+        "reason": "Complex nested hierarchy and relationships",
+        "complexity": "high"
+      }
+    },
+    "radar": {
+      "id": "radar",
+      "name": "Radar Chart",
+      "aliases": ["radar"],
+      "documentation": "https://mermaid.js.org/syntax/radar.html",
+      "description": "Multi-dimensional comparison (spider/radar chart)",
+      "primaryElements": ["axes", "data series", "values"],
+      "syntaxKeyword": "radar",
+      "narrative": {
+        "implemented": false,
+        "reason": "Multi-dimensional data visualization",
+        "complexity": "medium"
+      }
+    },
+    "treemap": {
+      "id": "treemap",
+      "name": "Treemap",
+      "aliases": ["treemap"],
+      "documentation": "https://mermaid.js.org/syntax/treemap.html",
+      "description": "Hierarchical space-filling visualization",
+      "primaryElements": ["hierarchy", "values", "labels"],
+      "syntaxKeyword": "treemap",
+      "narrative": {
+        "implemented": false,
+        "reason": "Hierarchical space allocation rendering",
+        "complexity": "low"
+      }
+    }
+  },
+  "narrativeSupport": {
+    "implemented": {
+      "flowchart": "Complete flowchart narrative with decisions and connections",
+      "class": "Class relationships and methods",
+      "pie": "Data breakdown with percentages",
+      "gantt": "Project timeline with task status",
+      "journey": "User experience with satisfaction levels"
+    },
+    "planned": {
+      "sequence": "Interaction timeline and message flow",
+      "state": "State transitions and conditions",
+      "entity": "Entity relationships and cardinality",
+      "gitgraph": "Commit history and branch strategy",
+      "c4": "Architecture layers and component relationships"
+    },
+    "considered": {
+      "quadrant": "Quadrant distribution analysis",
+      "mindmap": "Hierarchical concept structure",
+      "sankey": "Flow quantities and transformations",
+      "architecture": "System design hierarchy"
+    }
+  },
+  "syntaxOrganization": {
+    "byPrimary": [
+      {
+        "category": "Logic & Process",
+        "diagrams": ["flowchart", "state", "mindmap"]
+      },
+      {
+        "category": "Interaction & Time",
+        "diagrams": ["sequence", "journey", "gantt", "timeline"]
+      },
+      {
+        "category": "Data Structure",
+        "diagrams": ["class", "entity", "c4", "architecture"]
+      },
+      {
+        "category": "Data Visualization",
+        "diagrams": ["pie", "quadrant", "radar", "xychart", "sankey", "treemap"]
+      },
+      {
+        "category": "Domain-Specific",
+        "diagrams": ["gitgraph", "requirement", "packet", "kanban", "zenuml", "block"]
+      }
+    ],
+    "byComplexity": {
+      "simple": [
+        "pie",
+        "quadrant",
+        "timeline",
+        "packet",
+        "kanban",
+        "treemap"
+      ],
+      "medium": [
+        "flowchart",
+        "gantt",
+        "journey",
+        "mindmap",
+        "state",
+        "entity",
+        "sankey",
+        "xychart",
+        "block",
+        "radar"
+      ],
+      "complex": [
+        "sequence",
+        "class",
+        "c4",
+        "architecture",
+        "gitgraph",
+        "requirement",
+        "zenuml"
+      ]
+    },
+    "byNarrativeReadiness": {
+      "ready": [
+        "flowchart",
+        "pie",
+        "class",
+        "gantt",
+        "journey"
+      ],
+      "upcoming": [
+        "sequence",
+        "state",
+        "entity",
+        "gitgraph",
+        "c4"
+      ],
+      "future": [
+        "quadrant",
+        "mindmap",
+        "sankey",
+        "timeline",
+        "architecture",
+        "requirement"
+      ]
+    }
+  },
+  "commonPatterns": {
+    "declaration": "All diagrams start with `<diagramType>` keyword",
+    "comments": "Use %% for line comments (all diagrams)",
+    "metadata": "Use accTitle and accDescr for accessibility (flowchart, state)",
+    "styling": "classDef and class statements (flowchart, state, class)",
+    "configuration": "YAML frontmatter with --- delimiters",
+    "relationships": "Arrow syntax varies: -->, --, ->, etc.",
+    "nodes": "Enclosed in brackets or special characters: [], {}, (), etc.",
+    "labels": "Text on nodes or edges: A[Text], A -->|label| B"
+  }
+}
