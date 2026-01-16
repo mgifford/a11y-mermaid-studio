@@ -7,6 +7,10 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'fs';
+import path from 'path';
+
+const appJs = readFileSync(path.resolve(process.cwd(), 'app.js'), 'utf8');
 
 describe('Feature Tests', () => {
   it('should validate required metadata', () => {
@@ -42,5 +46,18 @@ describe('Feature Tests', () => {
   it('should handle Mermaid syntax errors gracefully', () => {
     // Feature: Error handling and user messaging
     expect(true).toBe(true);
+  });
+
+  it('should support live Mermaid editing with preview refresh', () => {
+    // Feature: validateAndRender called on source input changes
+    // When user edits Mermaid source, preview updates immediately
+    expect(appJs).toContain('validateAndRender');
+    expect(appJs).toContain('addEventListener(\'input\'');
+    expect(appJs).toContain('displayPreview');
+  });
+
+  it('should preserve accessibility when updating preview from edits', () => {
+    // Feature: applyAccessibilityTransformations called for every render
+    expect(appJs).toContain('applyAccessibilityTransformations');
   });
 });

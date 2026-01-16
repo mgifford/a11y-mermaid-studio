@@ -37,8 +37,8 @@
       <section class="code-split" aria-label="Diagram source and generated SVG">
         <section class="pane" id="mermaid-pane" aria-labelledby="editor-title">
           <div class="pane-header">
-            <h2 id="editor-title">Mermaid Source</h2>
-            <p class="help-text">Live rendering with required <code>%%accTitle</code> and <code>%%accDescr</code>.</p>
+            <h2 id="editor-title">MermaidJS Code</h2>
+            <p class="help-text">Initial source code for the SVG.</p>
           </div>
           <textarea 
             id="mermaid-source"
@@ -69,24 +69,22 @@
             <h2 id="svg-code-title">SVG Code</h2>
             <div class="svg-controls">
               <div class="mode-toggle" role="radiogroup" aria-label="SVG format mode">
-                <label>
-                  <input type="radio" name="svg-mode" value="beautiful" checked aria-label="Beautiful format">
+                <label for="mode-beautiful" id="label-beautiful">
+                  <input type="radio" name="svg-mode" id="mode-beautiful" value="beautiful" checked aria-label="Beautiful format">
                   Beautiful
                 </label>
-                <label>
-                  <input type="radio" name="svg-mode" value="optimized" aria-label="Optimized format">
+                <label for="mode-optimized" id="label-optimized">
+                  <input type="radio" name="svg-mode" id="mode-optimized" value="optimized" aria-label="Optimized format">
                   Optimized
                 </label>
               </div>
-              <div class="toggle-inline">
-                <label for="edit-svg-toggle" id="edit-svg-label">Edit</label>
-                <input id="edit-svg-toggle" type="checkbox" aria-labelledby="edit-svg-label" aria-describedby="edit-svg-desc">
-              </div>
             </div>
           </div>
-          <p class="help-text">Beautiful = readable; Optimized = production-ready. Edits update preview only.</p>
-          <span id="edit-svg-desc" class="sr-only">When enabled, you can directly edit the generated SVG code. Changes here will update the preview. This does not sync back to your Mermaid source.</span>
-          <textarea id="svg-code" aria-label="Generated accessible SVG code" spellcheck="false" readonly></textarea>
+          <p class="help-text">Beautiful = readable; Optimized = production-ready. Edits here update preview and the Optimized output.</p>
+          <div class="code-shell">
+            <pre id="svg-code-highlight" aria-hidden="true"></pre>
+            <textarea id="svg-code" aria-label="Generated accessible SVG code" spellcheck="false"></textarea>
+          </div>
           <div class="button-row">
             <button id="copy-svg-btn" type="button" aria-label="Copy SVG code to clipboard">Copy SVG</button>
             <button id="export-btn" type="button" aria-label="Export the rendered diagram as an SVG file">Export SVG</button>

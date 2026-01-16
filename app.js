@@ -16,15 +16,25 @@
  * - Export final accessible SVG
  */
 
+// Import xml-formatter for beautification
+let xmlFormatter = null;
+
+// Import SVGO for optimization
+let SVGO = null;
+
 const CONFIG = {
   mermaidVersion: '10.6.1',
   mermaidCDN: 'https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js',
+  xmlFormatterCDN: 'https://esm.sh/xml-formatter@3.6.0',
+  svgoCDN: 'https://esm.sh/svgo@3.2.0/dist/svgo.browser.js',
   examplesManifest: './examples/manifest.json',
 };
 
 const STATE = {
   svgMode: 'beautiful', // 'beautiful' or 'optimized'
   currentSvg: '', // Raw SVG from Mermaid
+  beautifiedSvg: '', // Formatted version
+  optimizedSvg: '', // Optimized version
 };
 
 /**
@@ -33,8 +43,15 @@ const STATE = {
 async function initializeApp() {
   console.log('A11y Mermaid Studio initializing...');
   
-  // Load Mermaid from CDN
-  await loadMermaid();
+  // Load required libraries from CDN
+  await Promise.all([
+    loadMermaid(),
+    loadXmlFormatter(),
+    loadSVGO()
+  ]);
+
+  // Seed empty highlight layer
+  renderSvgHighlight('');
   
   // Set up event listeners
   attachEventListeners();
@@ -76,12 +93,42 @@ async function loadMermaid() {
         startOnLoad: false,
         theme: 'default',
         securityLevel: 'loose',
+        pie: {
+          showData: true,
+          useMaxWidth: true
+        }
       });
       resolve();
     };
     script.onerror = () => reject(new Error('Failed to load Mermaid'));
     document.head.appendChild(script);
   });
+}
+
+/**
+ * Dynamically load xml-formatter from CDN
+ */
+async function loadXmlFormatter() {
+  try {
+    const module = await import(CONFIG.xmlFormatterCDN);
+    xmlFormatter = module.default;
+    console.log('xml-formatter loaded');
+  } catch (e) {
+    console.warn('Failed to load xml-formatter, using fallback:', e);
+  }
+}
+
+/**
+ * Dynamically load SVGO from CDN
+ */
+async function loadSVGO() {
+  try {
+    const module = await import(CONFIG.svgoCDN);
+    SVGO = module;
+    console.log('SVGO loaded');
+  } catch (e) {
+    console.warn('Failed to load SVGO, using fallback:', e);
+  }
 }
 
 /**
@@ -222,7 +269,6 @@ function attachEventListeners() {
   const randomBtn = document.getElementById('random-btn');
   const svgCode = document.getElementById('svg-code');
   const copySvgBtn = document.getElementById('copy-svg-btn');
-  const editSvgToggle = document.getElementById('edit-svg-toggle');
   
   if (sourceInput) {
     // Live validation and rendering on every keystroke
@@ -243,37 +289,56 @@ function attachEventListeners() {
 
   if (randomBtn) {
     randomBtn.addEventListener('click', async () => {
+      if (randomBtn.disabled) return;
+      randomBtn.disabled = true;
+      randomBtn.setAttribute('aria-busy', 'true');
       try {
         await loadRandomExampleIntoEditor();
-        await validateAndRender();
-        showToast('Loaded a random example.', 'success');
+        const ok = await validateAndRender();
+        if (ok) {
+          showToast('Loaded a random example.', 'success');
+        } else {
+          showToast('Example loaded but failed to render. Please retry.', 'error');
+        }
       } catch (e) {
+        console.error('Random load failed', e);
         showToast('Could not load example.', 'error');
+      } finally {
+        randomBtn.disabled = false;
+        randomBtn.removeAttribute('aria-busy');
       }
     });
   }
 
   if (copySvgBtn && svgCode) {
-    copySvgBtn.addEventListener('click', () => copyToClipboard(svgCode.value));
+    copySvgBtn.addEventListener('click', () => {
+      // Ensure the textarea reflects the currently selected mode before copying
+      updateSvgDisplay();
+      copyToClipboard(svgCode.value);
+    });
   }
 
-  if (editSvgToggle && svgCode) {
-    editSvgToggle.addEventListener('change', (e) => {
-      const enabled = e.target.checked;
-      svgCode.readOnly = !enabled;
-      if (enabled) {
-        showToast('SVG editing enabled. Changes here update the preview but will not sync back to Mermaid source.', 'info');
-      }
-    });
-    // Live update preview when editing is enabled
+  if (svgCode) {
+    // Keep highlight scroll in sync with textarea scroll
+    const highlight = document.getElementById('svg-code-highlight');
+    const syncScroll = () => {
+      if (!highlight) return;
+      highlight.scrollTop = svgCode.scrollTop;
+      highlight.scrollLeft = svgCode.scrollLeft;
+    };
+    svgCode.addEventListener('scroll', syncScroll);
+    window.addEventListener('resize', syncScroll);
+    syncScroll();
+
+    // Always allow editing; live update preview and optimized output
     svgCode.addEventListener('input', () => {
-      if (!editSvgToggle.checked) return;
       const code = svgCode.value;
       const parsed = parseSvgSafely(code);
       if (parsed.ok) {
         displayPreview(code);
+        renderSvgHighlight(code);
       } else {
-        showError('Invalid SVG code. Please fix errors or disable editing.');
+        showError('Invalid SVG code. Please fix errors.');
       }
     });
   }
@@ -371,10 +436,12 @@ async function validateAndRender() {
     // Clear any previous error
     editorError.textContent = '';
     editorError.classList.remove('show');
+    return true;
   } catch (error) {
     // Show subtle error in editor area
     editorError.textContent = error.message;
     editorError.classList.add('show');
+    return false;
   }
 }
 
@@ -580,25 +647,36 @@ function setupSplitter() {
  * Format SVG for readability (Beautiful mode)
  */
 function formatSvg(svgString) {
+  if (!svgString) return '';
+  
   try {
+    // Use xml-formatter if available for professional formatting
+    if (xmlFormatter) {
+      const formatted = xmlFormatter(svgString, { 
+        indentation: '  ', 
+        lineSeparator: '\n' 
+      });
+      return formatted.endsWith('\n') ? formatted : `${formatted}\n`;
+    }
+    
+    // Fallback to basic formatting
     const parser = new DOMParser();
     const doc = parser.parseFromString(svgString, 'image/svg+xml');
+    if (doc.querySelector('parsererror')) return svgString;
+    
     const serializer = new XMLSerializer();
     let formatted = serializer.serializeToString(doc);
     
-    // Add line breaks and indentation
+    // Add line breaks and basic indentation
     formatted = formatted
       .replace(/></g, '>\n<')
       .split('\n')
-      .map((line, i) => {
-        const depth = (line.match(/<\w/g) || []).length - (line.match(/<\//g) || []).length;
-        const indent = '  '.repeat(Math.max(0, depth));
-        return indent + line.trim();
-      })
+      .map(line => line.trim())
       .join('\n');
     
-    return formatted;
+    return formatted.endsWith('\n') ? formatted : `${formatted}\n`;
   } catch (e) {
+    console.warn('formatSvg error:', e);
     return svgString;
   }
 }
@@ -607,8 +685,31 @@ function formatSvg(svgString) {
  * Optimize SVG for production (Optimized mode)
  */
 function optimizeSvg(svgString) {
+  if (!svgString) return '';
+  
   try {
-    // Remove unnecessary whitespace and newlines
+    // Use SVGO if available for professional optimization
+    if (SVGO && typeof SVGO.optimize === 'function') {
+      const result = SVGO.optimize(svgString, {
+        multipass: true,
+        plugins: [
+          {
+            name: 'preset-default',
+            params: {
+              overrides: {
+                removeViewBox: false,
+                removeTitle: false,
+                removeDesc: false,
+                cleanupIds: false
+              }
+            }
+          }
+        ]
+      });
+      return result.data || svgString;
+    }
+    
+    // Fallback to basic minification
     let optimized = svgString
       .replace(/\s+/g, ' ')
       .replace(/> </g, '><')
@@ -617,6 +718,7 @@ function optimizeSvg(svgString) {
     
     return optimized;
   } catch (e) {
+    console.warn('optimizeSvg error:', e);
     return svgString;
   }
 }
@@ -626,18 +728,60 @@ function optimizeSvg(svgString) {
  */
 function updateSvgDisplay() {
   const svgCode = document.getElementById('svg-code');
-  const editToggle = document.getElementById('edit-svg-toggle');
   
   if (!svgCode || !STATE.currentSvg) return;
   
-  // Don't update if user is editing
-  if (editToggle && editToggle.checked) return;
-  
-  if (STATE.svgMode === 'beautiful') {
-    svgCode.value = formatSvg(STATE.currentSvg);
-  } else {
-    svgCode.value = optimizeSvg(STATE.currentSvg);
+  // Generate formatted/optimized versions if not cached
+  if (!STATE.beautifiedSvg) {
+    STATE.beautifiedSvg = formatSvg(STATE.currentSvg);
   }
+  if (!STATE.optimizedSvg) {
+    STATE.optimizedSvg = optimizeSvg(STATE.currentSvg);
+  }
+  
+  // Display based on current mode
+  if (STATE.svgMode === 'beautiful') {
+    svgCode.value = STATE.beautifiedSvg;
+  } else {
+    svgCode.value = STATE.optimizedSvg;
+  }
+  
+  // Refresh highlighting
+  renderSvgHighlight(svgCode.value);
+  
+  // Update size metrics
+  updateSizeMetrics();
+}
+
+/**
+ * Update size metrics display
+ */
+function updateSizeMetrics() {
+  const beautifulLabel = document.querySelector('label[for="mode-beautiful"]');
+  const optimizedLabel = document.querySelector('label[for="mode-optimized"]');
+  
+  if (!beautifulLabel || !optimizedLabel) return;
+  
+  const beautifiedSize = STATE.beautifiedSvg.length;
+  const optimizedSize = STATE.optimizedSvg.length;
+  
+  const formatSize = (bytes) => `${(bytes / 1024).toFixed(1)} KB`;
+  const formatPercentVsBeautified = (base, current) => {
+    if (!base) return '';
+    const diff = ((current - base) / base) * 100;
+    if (!Number.isFinite(diff)) return '';
+    const sign = diff > 0 ? '+' : '';
+    return `${sign}${diff.toFixed(0)}% vs Beautiful`;
+  };
+  
+  // Beautiful: size only
+  beautifulLabel.innerHTML = `Beautiful <span class="size-hint">• ${formatSize(beautifiedSize)}</span>`;
+  
+  // Optimized: size plus delta vs Beautiful
+  const pct = formatPercentVsBeautified(beautifiedSize, optimizedSize);
+  optimizedLabel.innerHTML = pct
+    ? `Optimized <span class="size-hint">• ${formatSize(optimizedSize)} (${pct})</span>`
+    : `Optimized <span class="size-hint">• ${formatSize(optimizedSize)}</span>`;
 }
 
 /**
@@ -647,6 +791,7 @@ function displayPreview(svgString) {
   const lightPreview = document.getElementById('preview-light');
   const darkPreview = document.getElementById('preview-dark');
   
+  // Always render fresh—previews are never cached; always written directly to DOM
   if (lightPreview) {
     lightPreview.innerHTML = svgString;
   }
@@ -658,15 +803,69 @@ function displayPreview(svgString) {
     if (svg) svg.classList.add('dark-mode');
   }
 
-  // Store raw SVG and update display based on mode
+  // Store raw SVG and clear cached versions
   STATE.currentSvg = svgString;
+  STATE.beautifiedSvg = '';
+  STATE.optimizedSvg = '';
+  
+  // Update the SVG code display based on current mode
   updateSvgDisplay();
+}
+
+/**
+ * Render syntax highlighting for SVG code
+ */
+function renderSvgHighlight(svgString) {
+  const highlight = document.getElementById('svg-code-highlight');
+  const textarea = document.getElementById('svg-code');
+  if (!highlight) return;
+
+  const escapeHtml = (str) => str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  let html = escapeHtml(svgString || '');
+
+  // Highlight comments
+  html = html.replace(/(&lt;!--[\s\S]*?--&gt;)/g, '<span class="hl-comment">$1</span>');
+
+  // Highlight tags and attributes
+  html = html.replace(/(&lt;\/?)([a-zA-Z0-9:-]+)([^&]*?)(\/?&gt;)/g, (match, open, tag, attrs, close) => {
+    const attrHtml = attrs.replace(/([a-zA-Z_:.-]+)(\s*=\s*"[^"]*")/g, (m, name, value) => {
+      const lower = name.toLowerCase();
+      const cls = lower.startsWith('aria-') || lower === 'role' || lower.startsWith('acc')
+        ? 'hl-aria'
+        : (lower.includes('style') || lower === 'class' || lower === 'fill' || lower === 'stroke' || lower.startsWith('data-'))
+          ? 'hl-style'
+          : 'hl-attr';
+      return `<span class="${cls}">${name}${value}</span>`;
+    });
+    return `${open}<span class="hl-tag">${tag}</span>${attrHtml}${close}`;
+  });
+
+  // Highlight text nodes between tags
+  html = html.replace(/&gt;([^<]+?)&lt;/g, (m, text) => {
+    if (!text.trim()) return m;
+    return `&gt;<span class="hl-text">${text}</span>&lt;`;
+  });
+
+  highlight.innerHTML = html;
+
+  // Keep scroll positions aligned after re-render
+  if (textarea) {
+    highlight.scrollTop = textarea.scrollTop;
+    highlight.scrollLeft = textarea.scrollLeft;
+  }
 }
 
 /**
  * Handle export button click
  */
 function handleExport() {
+  // Ensure the textarea reflects the current mode before exporting
+  updateSvgDisplay();
+
   // Prefer the SVG code textarea if present (may include edits)
   const svgCode = document.getElementById('svg-code');
   let svgString = svgCode?.value;
