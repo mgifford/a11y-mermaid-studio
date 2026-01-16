@@ -212,11 +212,114 @@ function applyAccessibilityTransformations(svgString, metadata) {
     svg.setAttribute('aria-labelledby', titleId);
   }
   
+  // Apply flowchart-specific transformations (Léonie Watson / Ashley Sheridan pattern)
+  applyFlowchartSemantics(svg);
+  
   // Preserve xmlns namespace for standalone SVG usage
   svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
   
   return new XMLSerializer().serializeToString(doc);
 }
+
+/**
+ * Apply flowchart-specific accessibility semantics
+ * Implements Léonie Watson's accessible flowchart pattern:
+ * https://tink.uk/accessible-svg-flowcharts/
+ * 
+ * Key transformations:
+ * - Wrap flowchart nodes in role="list" group
+ * - Mark each node as role="listitem"
+ * - Add <title> to each node with its text content
+ * - Hide decorative shapes with aria-hidden="true"
+ * - Hide arrows/connectors with aria-hidden="true"
+ */
+function applyFlowchartSemantics(svg) {
+  // Detect if this is a flowchart by checking for Mermaid's flowchart structure
+  const flowchartRoot = svg.querySelector('[id^="flowchart-"]');
+  if (!flowchartRoot) {
+    console.log('[Flowchart] Not a flowchart diagram, skipping flowchart semantics');
+    return; // Not a flowchart
+  }
+  
+  console.log('[Flowchart] Detected flowchart, applying semantic transformations');
+  
+  // Find all node groups (Mermaid uses class "node" for flowchart nodes)
+  const nodeGroups = svg.querySelectorAll('g.node');
+  
+  if (nodeGroups.length === 0) {
+    console.log('[Flowchart] No nodes found');
+    return;
+  }
+  
+  console.log(`[Flowchart] Found ${nodeGroups.length} nodes`);
+  
+  // Create a wrapper group with role="list"
+  const listGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  listGroup.setAttribute('role', 'list');
+  listGroup.setAttribute('aria-label', 'Flowchart nodes');
+  
+  // Process each node
+  nodeGroups.forEach((node, index) => {
+    // Add role="listitem" to the node group
+    node.setAttribute('role', 'listitem');
+    
+    // Extract text content from the node
+    const textElements = node.querySelectorAll('text');
+    let nodeText = '';
+    textElements.forEach(textEl => {
+      nodeText += textEl.textContent.trim() + ' ';
+    });
+    nodeText = nodeText.trim();
+    
+    console.log(`[Flowchart] Node ${index + 1}: "${nodeText}"`);
+    
+    // Add a <title> element to the node for accessibility
+    const existingTitle = node.querySelector('title');
+    if (existingTitle) {
+      existingTitle.remove();
+    }
+    
+    if (nodeText) {
+      const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+      title.textContent = nodeText;
+      node.insertBefore(title, node.firstChild);
+    }
+    
+    // Hide decorative shapes (rect, circle, polygon, path within node)
+    const shapes = node.querySelectorAll('rect, circle, ellipse, polygon, path');
+    shapes.forEach(shape => {
+      shape.setAttribute('aria-hidden', 'true');
+    });
+    
+    // Text elements are kept visible to AT unless they're fragmented
+    // If text is fragmented across multiple <text> elements, keep only one visible
+    if (textElements.length > 1) {
+      textElements.forEach((textEl, i) => {
+        if (i > 0) {
+          textEl.setAttribute('aria-hidden', 'true');
+        }
+      });
+    }
+  });
+  
+  // Hide edge/arrow groups (Mermaid uses class "edgePath" or "edgeLabel")
+  const edges = svg.querySelectorAll('g.edgePath, g.edgeLabel, g.edgePaths');
+  console.log(`[Flowchart] Found ${edges.length} edges to hide`);
+  edges.forEach(edge => {
+    edge.setAttribute('aria-hidden', 'true');
+  });
+  
+  // Hide arrow markers
+  const markers = svg.querySelectorAll('defs marker');
+  markers.forEach(marker => {
+    marker.setAttribute('aria-hidden', 'true');
+  });
+  
+  // Note: We're not wrapping nodes in the list group to preserve Mermaid's layout
+  // Instead, we're adding role="listitem" directly to existing node groups
+  // This is a pragmatic approach that preserves visual layout while adding semantics
+}
+
 
 /**
  * Calculate WCAG contrast ratio between two colors
