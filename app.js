@@ -251,7 +251,7 @@ function attachEventListeners() {
       const enabled = e.target.checked;
       svgCode.readOnly = !enabled;
       if (enabled) {
-        showModal('SVG editing enabled. Changes here update the preview but will not sync back to Mermaid source.', 'info');
+        showToast('SVG editing enabled. Changes here update the preview but will not sync back to Mermaid source.', 'info');
       }
     });
     // Live update preview when editing is enabled
@@ -323,8 +323,8 @@ async function handleRender() {
     if (ensured.added) {
       // Reflect auto-added annotations back into the textarea
       if (sourceInput) sourceInput.value = mermaidSource;
-      // Inform the user with an accessible modal popup
-      showModal('Title and description added for accessibility, please customize.', 'info');
+      // Inform the user with a non-blocking accessible toast
+      showToast('Title and description added for accessibility, please customize.', 'info');
     }
     
     // Render Mermaid
@@ -419,6 +419,45 @@ function showModal(message, tone = 'info') {
   overlay.addEventListener('click', overlayHandler);
   document.addEventListener('keydown', escHandler);
   closeBtn.addEventListener('click', closeModal);
+}
+
+/**
+ * Show a non-blocking, auto-dismissing accessible toast message
+ */
+function showToast(message, tone = 'info', timeout = 4000) {
+  let container = document.getElementById('toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    container.className = 'toast-container';
+    container.setAttribute('aria-live', 'polite');
+    container.setAttribute('aria-atomic', 'true');
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+
+  const msg = document.createElement('div');
+  msg.className = 'toast-message ' + tone;
+  msg.textContent = message;
+
+  const close = document.createElement('button');
+  close.type = 'button';
+  close.className = 'toast-close';
+  close.setAttribute('aria-label', 'Dismiss notification');
+  close.textContent = '×';
+  close.addEventListener('click', () => {
+    if (toast.parentNode) toast.parentNode.removeChild(toast);
+  });
+
+  toast.appendChild(msg);
+  toast.appendChild(close);
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    if (toast.parentNode === container) container.removeChild(toast);
+  }, timeout);
 }
 
 /**
