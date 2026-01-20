@@ -330,6 +330,40 @@ function ensureViewBox(svgString) {
       return { valid: false, reason: `SVG validation failed: ${e.message}` };
     }
   }
+
+  /**
+   * Lint Mermaid source for common authoring issues (best-effort)
+   */
+  function lintMermaidSource(source, diagramType) {
+    const warnings = [];
+    const hasTitle = /%%\s*accTitle\s+.+/i.test(source);
+    const hasDesc = /%%\s*accDescr\s+.+/i.test(source);
+    if (!hasTitle || !hasDesc) {
+      warnings.push('Add %%accTitle and %%accDescr (accessibility required)');
+    }
+
+    // Basic sanity checks per diagram type (lightweight heuristics)
+    const trimmedType = (diagramType || '').toLowerCase();
+    if (trimmedType === 'sequence') {
+      if (!/participant\s+/i.test(source)) warnings.push('Sequence: define participants');
+      if (!/->>|-->/i.test(source)) warnings.push('Sequence: add at least one message arrow');
+    }
+    if (trimmedType === 'flowchart' || trimmedType === 'graph') {
+      if (!/-->/i.test(source)) warnings.push('Flowchart: add arrows between nodes');
+    }
+    if (trimmedType === 'gantt') {
+      if (!/dateFormat/i.test(source)) warnings.push('Gantt: set dateFormat');
+      if (!/section/i.test(source)) warnings.push('Gantt: add at least one section/task');
+    }
+    if (trimmedType === 'state') {
+      if (!/\[\*\]/.test(source)) warnings.push('State: include start/end markers [*]');
+    }
+
+    // Generic structure guard
+    if (!source.includes('\n')) warnings.push('Add line breaks for readability and parsing');
+
+    return warnings;
+  }
   }
 }
 
@@ -1381,6 +1415,28 @@ async function validateAndRender() {
       showToast(msg, 'error');
       return false;
     }
+
+    // Preflight: Mermaid syntax validation
+    if (window.mermaid && typeof window.mermaid.parse === 'function') {
+      try {
+        await window.mermaid.parse(mermaidSource);
+        console.log('[validateAndRender] Mermaid parse preflight passed');
+      } catch (err) {
+        const msg = `Mermaid parse error: ${err?.str || err?.message || err}`;
+        console.error('[validateAndRender]', msg);
+        editorError.textContent = msg;
+        editorError.classList.add('show');
+        showToast(msg, 'error');
+        return false;
+      }
+    }
+
+    // Lint pass for common authoring issues
+    const lintWarnings = lintMermaidSource(mermaidSource, diagramType);
+    if (lintWarnings.length) {
+      console.warn('[lint] warnings:', lintWarnings);
+      showToast(`Lint: ${lintWarnings.join(' • ')}`, 'info', 5000);
+    }
     
     // Render Mermaid
     console.log('[validateAndRender] Calling renderMermaidDiagram...');
@@ -1388,7 +1444,9 @@ async function validateAndRender() {
     console.log('[validateAndRender] Got SVG from Mermaid, length:', svg.length);
     
         // Validate SVG has actual content
-        const contentCheck = validateSvgHasContent(svg);
+        const contentCheck = typeof validateSvgHasContent === 'function'
+          ? validateSvgHasContent(svg)
+          : { valid: !!svg, reason: 'validateSvgHasContent missing' };
         if (!contentCheck.valid) {
           const msg = contentCheck.reason || 'Empty SVG generated';
           console.error('[validateAndRender]', msg);
