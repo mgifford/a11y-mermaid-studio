@@ -1489,6 +1489,8 @@ async function validateAndRender() {
       editorError.classList.add('show');
       showToast(msg, 'error');
       setRenderHelp([{ message: msg }]);
+      // Clear any stale previews so UI does not show a previous diagram
+      displayPreview('');
       return false;
     }
 
@@ -1505,6 +1507,8 @@ async function validateAndRender() {
         editorError.classList.add('show');
         showToast(msg, 'error');
         setRenderHelp([{ message: msg, line }]);
+        // Clear any stale previews so UI does not show a previous diagram
+        displayPreview('');
         return false;
       }
     }
@@ -1518,25 +1522,38 @@ async function validateAndRender() {
       helpItems.push(...lintWarnings);
     }
     
-    // Render Mermaid
-    console.log('[validateAndRender] Calling renderMermaidDiagram...');
-    const svg = await renderMermaidDiagram(mermaidSource);
-    console.log('[validateAndRender] Got SVG from Mermaid, length:', svg.length);
-    
-        // Validate SVG has actual content
-        const contentCheck = typeof validateSvgHasContent === 'function'
-          ? validateSvgHasContent(svg)
-          : { valid: !!svg, reason: 'validateSvgHasContent missing' };
-        if (!contentCheck.valid) {
-          const msg = contentCheck.reason || 'Empty SVG generated';
-          console.error('[validateAndRender]', msg);
-          editorError.textContent = msg;
-          editorError.classList.add('show');
-          showToast(msg, 'error');
-          setRenderHelp(helpItems.length ? helpItems : [{ message: msg }]);
-          return false;
-        }
+    // Render Mermaid (with a single retry if we get an empty SVG)
+    let svg = '';
+    let contentCheck = { valid: false, reason: 'Not rendered yet' };
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      console.log(`[validateAndRender] Render attempt ${attempt}...`);
+      svg = await renderMermaidDiagram(mermaidSource);
+      console.log('[validateAndRender] Got SVG from Mermaid, length:', svg.length);
+
+      contentCheck = typeof validateSvgHasContent === 'function'
+        ? validateSvgHasContent(svg)
+        : { valid: !!svg, reason: 'validateSvgHasContent missing' };
+
+      if (contentCheck.valid) {
         console.log('[validateAndRender] SVG content validation passed');
+        break;
+      }
+
+      console.warn('[validateAndRender] Empty/invalid SVG, reason:', contentCheck.reason);
+      if (attempt === 2) {
+        const msg = contentCheck.reason || 'Empty SVG generated';
+        editorError.textContent = msg;
+        editorError.classList.add('show');
+        showToast(msg, 'error');
+        setRenderHelp(helpItems.length ? helpItems : [{ message: msg }]);
+        // Clear any stale previews so UI does not show a previous diagram
+        displayPreview('');
+        return false;
+      }
+
+      // Briefly yield before retrying to let Mermaid/layout settle
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    }
     
     // Apply accessibility transformations
     console.log('[validateAndRender] Applying accessibility transformations...');
@@ -1590,6 +1607,8 @@ async function validateAndRender() {
     editorError.textContent = error.message;
     editorError.classList.add('show');
     setRenderHelp([{ message: error.message }]);
+    // Clear any stale previews so UI does not show a previous diagram
+    displayPreview('');
     return false;
   }
 }

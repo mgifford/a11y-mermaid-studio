@@ -61,9 +61,10 @@ describe('Integration Tests - Actual SVG Generation', () => {
   });
 
   it('validateAndRender should call renderMermaidDiagram -> displayPreview', () => {
-    // Critical path: source → render → transform → display → update code
+    // Critical path: source → render (with retry) → transform → display → update code
     expect(appJs).toContain('async function validateAndRender()');
-    expect(appJs).toContain('const svg = await renderMermaidDiagram(mermaidSource)');
+    expect(appJs).toContain('for (let attempt = 1; attempt <= 2; attempt += 1)');
+    expect(appJs).toContain('svg = await renderMermaidDiagram(mermaidSource)');
     expect(appJs).toContain('const accessibleSvg = applyAccessibilityTransformations(svg, metadata)');
     expect(appJs).toContain('const sizedSvg = ensureViewBox(accessibleSvg)');
     expect(appJs).toContain('displayPreview(sizedSvg)');
