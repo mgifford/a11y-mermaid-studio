@@ -521,6 +521,26 @@ footer {
   border-width: 0;
 }
 
+.render-help {
+  margin-top: 0.5rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-muted, #f8f8f8);
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.95rem;
+}
+
+.render-help summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.render-help ul {
+  margin: 0.25rem 0 0 1rem;
+  padding: 0;
+  list-style: disc;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;

@@ -332,37 +332,78 @@ function ensureViewBox(svgString) {
   }
 
   /**
+   * Update the render help panel with lint/parse hints
+   */
+  function setRenderHelp(items) {
+    const panel = document.getElementById('render-help');
+    const list = document.getElementById('render-help-list');
+    if (!panel || !list) return;
+
+    list.innerHTML = '';
+    if (!items || !items.length) {
+      panel.setAttribute('hidden', '');
+      return;
+    }
+
+    items.forEach((item) => {
+      const li = document.createElement('li');
+      li.textContent = item.line ? `Line ${item.line}: ${item.message}` : item.message;
+      list.appendChild(li);
+    });
+
+    panel.removeAttribute('hidden');
+  }
+
+  /**
    * Lint Mermaid source for common authoring issues (best-effort)
    */
   function lintMermaidSource(source, diagramType) {
     const warnings = [];
+    const lines = source.split(/\n/);
+    const findLineContaining = (pattern) => {
+      const re = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
+      const idx = lines.findIndex((l) => re.test(l));
+      return idx >= 0 ? idx + 1 : undefined;
+    };
     const hasTitle = /%%\s*accTitle\s+.+/i.test(source);
     const hasDesc = /%%\s*accDescr\s+.+/i.test(source);
     if (!hasTitle || !hasDesc) {
-      warnings.push('Add %%accTitle and %%accDescr (accessibility required)');
+      warnings.push({ message: 'Add %%accTitle and %%accDescr (accessibility required)' });
     }
 
     // Basic sanity checks per diagram type (lightweight heuristics)
     const trimmedType = (diagramType || '').toLowerCase();
     if (trimmedType === 'sequence') {
-      if (!/participant\s+/i.test(source)) warnings.push('Sequence: define participants');
-      if (!/->>|-->/i.test(source)) warnings.push('Sequence: add at least one message arrow');
+      if (!/participant\s+/i.test(source)) warnings.push({ message: 'Sequence: define participants' });
+      if (!/->>|-->/i.test(source)) warnings.push({ message: 'Sequence: add at least one message arrow', line: findLineContaining(/->>|-->/) });
     }
     if (trimmedType === 'flowchart' || trimmedType === 'graph') {
-      if (!/-->/i.test(source)) warnings.push('Flowchart: add arrows between nodes');
+      if (!/-->/i.test(source)) warnings.push({ message: 'Flowchart: add arrows between nodes' });
     }
     if (trimmedType === 'gantt') {
-      if (!/dateFormat/i.test(source)) warnings.push('Gantt: set dateFormat');
-      if (!/section/i.test(source)) warnings.push('Gantt: add at least one section/task');
+      if (!/dateFormat/i.test(source)) warnings.push({ message: 'Gantt: set dateFormat', line: findLineContaining(/dateFormat/i) });
+      if (!/section/i.test(source)) warnings.push({ message: 'Gantt: add at least one section/task' });
     }
     if (trimmedType === 'state') {
-      if (!/\[\*\]/.test(source)) warnings.push('State: include start/end markers [*]');
+      if (!/\[\*\]/.test(source)) warnings.push({ message: 'State: include start/end markers [*]' });
     }
 
     // Generic structure guard
-    if (!source.includes('\n')) warnings.push('Add line breaks for readability and parsing');
+    if (!source.includes('\n')) warnings.push({ message: 'Add line breaks for readability and parsing' });
 
     return warnings;
+  }
+
+  /**
+   * Try to extract a line number from a Mermaid parse error
+   */
+  function extractMermaidErrorLine(err) {
+    const hashLine = err?.hash?.loc?.first_line;
+    if (typeof hashLine === 'number') return hashLine;
+    const str = err?.str || err?.message || '';
+    const match = /line\s+(\d+)/i.exec(str);
+    if (match) return Number(match[1]);
+    return undefined;
   }
   }
 }
@@ -1377,6 +1418,7 @@ async function loadRandomExampleIntoEditor() {
 async function validateAndRender() {
   const sourceInput = document.getElementById('mermaid-source');
   const editorError = document.getElementById('editor-error');
+  const helpItems = [];
   
   if (!sourceInput) {
     console.error('[validateAndRender] sourceInput element not found');
@@ -1413,6 +1455,7 @@ async function validateAndRender() {
       editorError.textContent = msg;
       editorError.classList.add('show');
       showToast(msg, 'error');
+      setRenderHelp([{ message: msg }]);
       return false;
     }
 
@@ -1422,11 +1465,13 @@ async function validateAndRender() {
         await window.mermaid.parse(mermaidSource);
         console.log('[validateAndRender] Mermaid parse preflight passed');
       } catch (err) {
+        const line = extractMermaidErrorLine(err);
         const msg = `Mermaid parse error: ${err?.str || err?.message || err}`;
         console.error('[validateAndRender]', msg);
         editorError.textContent = msg;
         editorError.classList.add('show');
         showToast(msg, 'error');
+        setRenderHelp([{ message: msg, line }]);
         return false;
       }
     }
@@ -1435,7 +1480,9 @@ async function validateAndRender() {
     const lintWarnings = lintMermaidSource(mermaidSource, diagramType);
     if (lintWarnings.length) {
       console.warn('[lint] warnings:', lintWarnings);
-      showToast(`Lint: ${lintWarnings.join(' • ')}`, 'info', 5000);
+      const lintText = lintWarnings.map((w) => w.line ? `Line ${w.line}: ${w.message}` : w.message).join(' • ');
+      showToast(`Lint: ${lintText}`, 'info', 5000);
+      helpItems.push(...lintWarnings);
     }
     
     // Render Mermaid
@@ -1453,6 +1500,7 @@ async function validateAndRender() {
           editorError.textContent = msg;
           editorError.classList.add('show');
           showToast(msg, 'error');
+          setRenderHelp(helpItems.length ? helpItems : [{ message: msg }]);
           return false;
         }
         console.log('[validateAndRender] SVG content validation passed');
@@ -1491,6 +1539,7 @@ async function validateAndRender() {
     // Clear any previous error
     editorError.textContent = '';
     editorError.classList.remove('show');
+    setRenderHelp(helpItems);
     
     // Verify the UI is updated
     const lightPreview = document.getElementById('preview-light');
@@ -1507,6 +1556,7 @@ async function validateAndRender() {
     console.error('[validateAndRender] Error during rendering:', error);
     editorError.textContent = error.message;
     editorError.classList.add('show');
+    setRenderHelp([{ message: error.message }]);
     return false;
   }
 }
