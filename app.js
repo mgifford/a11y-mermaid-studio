@@ -81,7 +81,11 @@ async function initializeApp() {
         console.log('[Init] Editor empty, loading random example...');
         try {
           const example = await loadRandomExampleIntoEditor();
-          console.log('[Init] Random example loaded, length:', example.length);
+          console.log('[Init] Random example loaded into editor, length:', example.length);
+          console.log('[Init] Rendering loaded example...');
+          const renderOk = await validateAndRender();
+          console.log('[Init] Random example validateAndRender returned:', renderOk);
+          console.log('[Init] Final STATE - currentSvg:', STATE.currentSvg?.length || 0, 'beautifiedSvg:', STATE.beautifiedSvg?.length || 0);
         } catch (e) {
           console.error('[Init] Failed to load random example:', e);
           showError(`Failed to load example: ${e.message}`);
@@ -90,7 +94,10 @@ async function initializeApp() {
         // Render whatever we restored so the previews are in sync
         console.log('[Init] Content restored, rendering...');
         const renderOk = await validateAndRender();
-        console.log('[Init] validateAndRender returned:', renderOk);
+        console.log('[Init] Restored content validateAndRender returned:', renderOk);
+        console.log('[Init] Final STATE - currentSvg:', STATE.currentSvg?.length || 0, 'beautifiedSvg:', STATE.beautifiedSvg?.length || 0);
+      } else {
+        console.log('[Init] Editor has content but not from restore, not auto-rendering');
       }
     
     console.log('Application ready');
@@ -1351,10 +1358,15 @@ async function validateAndRender() {
     
     // Ensure viewBox so the preview has measurable dimensions
     const sizedSvg = ensureViewBox(accessibleSvg);
+    console.log('[validateAndRender] After ensureViewBox, SVG length:', sizedSvg.length);
     
     // Display preview
-    console.log('[validateAndRender] Calling displayPreview...');
+    console.log('[validateAndRender] Calling displayPreview with SVG length:', sizedSvg.length);
     displayPreview(sizedSvg);
+    console.log('[validateAndRender] displayPreview returned, checking STATE...');
+    console.log('[validateAndRender] STATE.currentSvg length:', STATE.currentSvg?.length || 0);
+    console.log('[validateAndRender] STATE.beautifiedSvg length:', STATE.beautifiedSvg?.length || 0);
+    console.log('[validateAndRender] STATE.optimizedSvg length:', STATE.optimizedSvg?.length || 0);
     
     // Generate and display narrative
     console.log('[validateAndRender] Generating narrative...');
@@ -1373,6 +1385,15 @@ async function validateAndRender() {
     // Clear any previous error
     editorError.textContent = '';
     editorError.classList.remove('show');
+    
+    // Verify the UI is updated
+    const lightPreview = document.getElementById('preview-light');
+    const darkPreview = document.getElementById('preview-dark');
+    const svgCodeEl = document.getElementById('svg-code');
+    console.log('[validateAndRender] Verification - lightPreview has content:', !!lightPreview?.querySelector('svg'));
+    console.log('[validateAndRender] Verification - darkPreview has content:', !!darkPreview?.querySelector('svg'));
+    console.log('[validateAndRender] Verification - svgCode has value:', !!svgCodeEl?.value);
+    
     console.log('[validateAndRender] Complete, returning true');
     return true;
   } catch (error) {
@@ -1668,8 +1689,16 @@ function optimizeSvg(svgString) {
 function updateSvgDisplay() {
   const svgCode = document.getElementById('svg-code');
   
-  if (!svgCode || !STATE.currentSvg) {
-    console.log('[updateSvgDisplay] Skipping: svgCode=', !!svgCode, 'STATE.currentSvg length=', STATE.currentSvg?.length);
+  if (!svgCode) {
+    console.warn('[updateSvgDisplay] svgCode element not found!');
+    return;
+  }
+  
+  // Allow empty SVG to clear the display
+  if (!STATE.currentSvg) {
+    console.log('[updateSvgDisplay] STATE.currentSvg is empty, clearing SVG code display');
+    svgCode.value = '';
+    renderSvgHighlight('');
     return;
   }
   
@@ -1688,10 +1717,10 @@ function updateSvgDisplay() {
   // Display based on current mode
   if (STATE.svgMode === 'beautiful') {
     svgCode.value = STATE.beautifiedSvg;
-    console.log('[updateSvgDisplay] Set textarea to beautifiedSvg');
+    console.log('[updateSvgDisplay] Set textarea to beautifiedSvg, value length:', svgCode.value.length);
   } else {
     svgCode.value = STATE.optimizedSvg;
-    console.log('[updateSvgDisplay] Set textarea to optimizedSvg');
+    console.log('[updateSvgDisplay] Set textarea to optimizedSvg, value length:', svgCode.value.length);
   }
   
   // Refresh highlighting
@@ -1740,18 +1769,26 @@ function displayPreview(svgString) {
   const lightPreview = document.getElementById('preview-light');
   const darkPreview = document.getElementById('preview-dark');
   
+  // Show placeholder message when empty
+  const placeholderMessage = '<p style="color: #666; font-style: italic; text-align: center; padding: 2rem;">Render a diagram to see a preview</p>';
+  const contentToDisplay = svgString || placeholderMessage;
+  
   // Always render fresh—previews are never cached; always written directly to DOM
   if (lightPreview) {
-    lightPreview.innerHTML = svgString;
-    console.log('[displayPreview] Updated light preview');
+    lightPreview.innerHTML = contentToDisplay;
+    console.log('[displayPreview] Updated light preview, innerHTML length:', lightPreview.innerHTML.length);
+  } else {
+    console.warn('[displayPreview] lightPreview element not found!');
   }
   
   if (darkPreview) {
-    darkPreview.innerHTML = svgString;
+    darkPreview.innerHTML = contentToDisplay;
     // Add dark mode class for styling
     const svg = darkPreview.querySelector('svg');
     if (svg) svg.classList.add('dark-mode');
-    console.log('[displayPreview] Updated dark preview');
+    console.log('[displayPreview] Updated dark preview, innerHTML length:', darkPreview.innerHTML.length);
+  } else {
+    console.warn('[displayPreview] darkPreview element not found!');
   }
 
   // Store raw SVG and clear cached versions
@@ -1759,9 +1796,12 @@ function displayPreview(svgString) {
   STATE.beautifiedSvg = '';
   STATE.optimizedSvg = '';
   
-  console.log('[displayPreview] Stored in STATE, calling updateSvgDisplay');
+  console.log('[displayPreview] STATE.currentSvg set, length:', STATE.currentSvg.length, 'calling updateSvgDisplay');
   // Update the SVG code display based on current mode
   updateSvgDisplay();
+  
+  // Log final state
+  console.log('[displayPreview] Complete. Preview divs updated:', !!lightPreview?.innerHTML, !!darkPreview?.innerHTML);
 }
 
 /**

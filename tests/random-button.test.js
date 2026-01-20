@@ -51,8 +51,8 @@ describe('Random Button Integration Tests', () => {
   it('should call displayPreview when random example renders successfully', () => {
     // validateAndRender calls displayPreview which writes to both light/dark previews
     expect(appJs).toContain('displayPreview');
-    expect(appJs).toContain('lightPreview.innerHTML = svgString');
-    expect(appJs).toContain('darkPreview.innerHTML = svgString');
+    expect(appJs).toContain('lightPreview.innerHTML = contentToDisplay');
+    expect(appJs).toContain('darkPreview.innerHTML = contentToDisplay');
   });
 
   it('should call updateSvgDisplay after preview to show SVG code', () => {

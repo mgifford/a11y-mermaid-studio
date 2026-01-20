@@ -74,8 +74,8 @@ describe('Regression Tests', () => {
 
   it('should regenerate preview fresh (not cached)', () => {
     // displayPreview writes directly to DOM, never caches preview in STATE
-    expect(appJs).toContain('lightPreview.innerHTML = svgString');
-    expect(appJs).toContain('darkPreview.innerHTML = svgString');
+    expect(appJs).toContain('lightPreview.innerHTML = contentToDisplay');
+    expect(appJs).toContain('darkPreview.innerHTML = contentToDisplay');
     // Verify preview HTML is NOT stored in STATE
     expect(appJs).not.toContain('STATE.preview');
     expect(appJs).not.toContain('STATE.lightPreview');
