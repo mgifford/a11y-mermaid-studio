@@ -294,6 +294,7 @@ function ensureViewBox(svgString) {
     return svgString;
   } finally {
     if (appended && temp.parentNode) temp.parentNode.removeChild(temp);
+  }
 
   /**
    * Validate that SVG has actual content (not just empty groups)
@@ -405,8 +406,7 @@ function ensureViewBox(svgString) {
     if (match) return Number(match[1]);
     return undefined;
   }
-  }
-}
+ 
 
 /**
  * Apply flowchart-specific accessibility semantics
