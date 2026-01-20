@@ -318,117 +318,118 @@ function ensureViewBox(svgString) {
   } finally {
     if (appended && temp.parentNode) temp.parentNode.removeChild(temp);
   }
+}
 
-  /**
-   * Validate that SVG has actual content (not just empty groups)
-   * Returns {valid: boolean, reason?: string}
-   */
-  function validateSvgHasContent(svgString) {
-    if (!svgString) {
-      return { valid: false, reason: 'SVG is empty' };
+/**
+ * Validate that SVG has actual content (not just empty groups)
+ * Returns {valid: boolean, reason?: string}
+ */
+function validateSvgHasContent(svgString) {
+  if (!svgString) {
+    return { valid: false, reason: 'SVG is empty' };
+  }
+
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(svgString, 'image/svg+xml');
+    const svg = doc.documentElement;
+  
+    // Check for parser errors
+    const parserError = doc.querySelector('parsererror');
+    if (parserError) {
+      return { valid: false, reason: 'SVG parsing error' };
     }
   
-    try {
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(svgString, 'image/svg+xml');
-      const svg = doc.documentElement;
-    
-      // Check for parser errors
-      const parserError = doc.querySelector('parsererror');
-      if (parserError) {
-        return { valid: false, reason: 'SVG parsing error' };
-      }
-    
-      // Look for actual content elements (not just empty g, title, desc, style, defs)
-      const contentElements = svg.querySelectorAll('rect, circle, ellipse, line, polyline, polygon, path, text, image, use');
-    
-      if (contentElements.length === 0) {
-        console.warn('[validateSvgHasContent] No content elements found. SVG structure:', svgString.substring(0, 500));
-        return { valid: false, reason: 'Mermaid rendered an empty diagram. This usually means the diagram syntax is incomplete or has errors that Mermaid silently ignored.' };
-      }
-    
-      console.log('[validateSvgHasContent] Found', contentElements.length, 'content elements');
-      return { valid: true };
-    } catch (e) {
-      console.error('[validateSvgHasContent] Validation error:', e);
-      return { valid: false, reason: `SVG validation failed: ${e.message}` };
+    // Look for actual content elements (not just empty g, title, desc, style, defs)
+    const contentElements = svg.querySelectorAll('rect, circle, ellipse, line, polyline, polygon, path, text, image, use');
+  
+    if (contentElements.length === 0) {
+      console.warn('[validateSvgHasContent] No content elements found. SVG structure:', svgString.substring(0, 500));
+      return { valid: false, reason: 'Mermaid rendered an empty diagram. This usually means the diagram syntax is incomplete or has errors that Mermaid silently ignored.' };
     }
+  
+    console.log('[validateSvgHasContent] Found', contentElements.length, 'content elements');
+    return { valid: true };
+  } catch (e) {
+    console.error('[validateSvgHasContent] Validation error:', e);
+    return { valid: false, reason: `SVG validation failed: ${e.message}` };
+  }
+}
+
+/**
+ * Update the render help panel with lint/parse hints
+ */
+function setRenderHelp(items) {
+  const panel = document.getElementById('render-help');
+  const list = document.getElementById('render-help-list');
+  if (!panel || !list) return;
+
+  list.innerHTML = '';
+  if (!items || !items.length) {
+    panel.setAttribute('hidden', '');
+    return;
   }
 
-  /**
-   * Update the render help panel with lint/parse hints
-   */
-  function setRenderHelp(items) {
-    const panel = document.getElementById('render-help');
-    const list = document.getElementById('render-help-list');
-    if (!panel || !list) return;
+  items.forEach((item) => {
+    const li = document.createElement('li');
+    li.textContent = item.line ? `Line ${item.line}: ${item.message}` : item.message;
+    list.appendChild(li);
+  });
 
-    list.innerHTML = '';
-    if (!items || !items.length) {
-      panel.setAttribute('hidden', '');
-      return;
-    }
+  panel.removeAttribute('hidden');
+}
 
-    items.forEach((item) => {
-      const li = document.createElement('li');
-      li.textContent = item.line ? `Line ${item.line}: ${item.message}` : item.message;
-      list.appendChild(li);
-    });
-
-    panel.removeAttribute('hidden');
+/**
+ * Lint Mermaid source for common authoring issues (best-effort)
+ */
+function lintMermaidSource(source, diagramType) {
+  const warnings = [];
+  const lines = source.split(/\n/);
+  const findLineContaining = (pattern) => {
+    const re = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
+    const idx = lines.findIndex((l) => re.test(l));
+    return idx >= 0 ? idx + 1 : undefined;
+  };
+  const hasTitle = /%%\s*accTitle\s+.+/i.test(source);
+  const hasDesc = /%%\s*accDescr\s+.+/i.test(source);
+  if (!hasTitle || !hasDesc) {
+    warnings.push({ message: 'Add %%accTitle and %%accDescr (accessibility required)' });
   }
 
-  /**
-   * Lint Mermaid source for common authoring issues (best-effort)
-   */
-  function lintMermaidSource(source, diagramType) {
-    const warnings = [];
-    const lines = source.split(/\n/);
-    const findLineContaining = (pattern) => {
-      const re = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
-      const idx = lines.findIndex((l) => re.test(l));
-      return idx >= 0 ? idx + 1 : undefined;
-    };
-    const hasTitle = /%%\s*accTitle\s+.+/i.test(source);
-    const hasDesc = /%%\s*accDescr\s+.+/i.test(source);
-    if (!hasTitle || !hasDesc) {
-      warnings.push({ message: 'Add %%accTitle and %%accDescr (accessibility required)' });
-    }
-
-    // Basic sanity checks per diagram type (lightweight heuristics)
-    const trimmedType = (diagramType || '').toLowerCase();
-    if (trimmedType === 'sequence') {
-      if (!/participant\s+/i.test(source)) warnings.push({ message: 'Sequence: define participants' });
-      if (!/->>|-->/i.test(source)) warnings.push({ message: 'Sequence: add at least one message arrow', line: findLineContaining(/->>|-->/) });
-    }
-    if (trimmedType === 'flowchart' || trimmedType === 'graph') {
-      if (!/-->/i.test(source)) warnings.push({ message: 'Flowchart: add arrows between nodes' });
-    }
-    if (trimmedType === 'gantt') {
-      if (!/dateFormat/i.test(source)) warnings.push({ message: 'Gantt: set dateFormat', line: findLineContaining(/dateFormat/i) });
-      if (!/section/i.test(source)) warnings.push({ message: 'Gantt: add at least one section/task' });
-    }
-    if (trimmedType === 'state') {
-      if (!/\[\*\]/.test(source)) warnings.push({ message: 'State: include start/end markers [*]' });
-    }
-
-    // Generic structure guard
-    if (!source.includes('\n')) warnings.push({ message: 'Add line breaks for readability and parsing' });
-
-    return warnings;
+  // Basic sanity checks per diagram type (lightweight heuristics)
+  const trimmedType = (diagramType || '').toLowerCase();
+  if (trimmedType === 'sequence') {
+    if (!/participant\s+/i.test(source)) warnings.push({ message: 'Sequence: define participants' });
+    if (!/->>|-->/i.test(source)) warnings.push({ message: 'Sequence: add at least one message arrow', line: findLineContaining(/->>|-->/) });
+  }
+  if (trimmedType === 'flowchart' || trimmedType === 'graph') {
+    if (!/-->/i.test(source)) warnings.push({ message: 'Flowchart: add arrows between nodes' });
+  }
+  if (trimmedType === 'gantt') {
+    if (!/dateFormat/i.test(source)) warnings.push({ message: 'Gantt: set dateFormat', line: findLineContaining(/dateFormat/i) });
+    if (!/section/i.test(source)) warnings.push({ message: 'Gantt: add at least one section/task' });
+  }
+  if (trimmedType === 'state') {
+    if (!/\[\*\]/.test(source)) warnings.push({ message: 'State: include start/end markers [*]' });
   }
 
-  /**
-   * Try to extract a line number from a Mermaid parse error
-   */
-  function extractMermaidErrorLine(err) {
-    const hashLine = err?.hash?.loc?.first_line;
-    if (typeof hashLine === 'number') return hashLine;
-    const str = err?.str || err?.message || '';
-    const match = /line\s+(\d+)/i.exec(str);
-    if (match) return Number(match[1]);
-    return undefined;
-  }
+  // Generic structure guard
+  if (!source.includes('\n')) warnings.push({ message: 'Add line breaks for readability and parsing' });
+
+  return warnings;
+}
+
+/**
+ * Try to extract a line number from a Mermaid parse error
+ */
+function extractMermaidErrorLine(err) {
+  const hashLine = err?.hash?.loc?.first_line;
+  if (typeof hashLine === 'number') return hashLine;
+  const str = err?.str || err?.message || '';
+  const match = /line\s+(\d+)/i.exec(str);
+  if (match) return Number(match[1]);
+  return undefined;
+}
  
 
 /**
