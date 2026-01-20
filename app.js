@@ -294,6 +294,42 @@ function ensureViewBox(svgString) {
     return svgString;
   } finally {
     if (appended && temp.parentNode) temp.parentNode.removeChild(temp);
+
+  /**
+   * Validate that SVG has actual content (not just empty groups)
+   * Returns {valid: boolean, reason?: string}
+   */
+  function validateSvgHasContent(svgString) {
+    if (!svgString) {
+      return { valid: false, reason: 'SVG is empty' };
+    }
+  
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(svgString, 'image/svg+xml');
+      const svg = doc.documentElement;
+    
+      // Check for parser errors
+      const parserError = doc.querySelector('parsererror');
+      if (parserError) {
+        return { valid: false, reason: 'SVG parsing error' };
+      }
+    
+      // Look for actual content elements (not just empty g, title, desc, style, defs)
+      const contentElements = svg.querySelectorAll('rect, circle, ellipse, line, polyline, polygon, path, text, image, use');
+    
+      if (contentElements.length === 0) {
+        console.warn('[validateSvgHasContent] No content elements found. SVG structure:', svgString.substring(0, 500));
+        return { valid: false, reason: 'Mermaid rendered an empty diagram. This usually means the diagram syntax is incomplete or has errors that Mermaid silently ignored.' };
+      }
+    
+      console.log('[validateSvgHasContent] Found', contentElements.length, 'content elements');
+      return { valid: true };
+    } catch (e) {
+      console.error('[validateSvgHasContent] Validation error:', e);
+      return { valid: false, reason: `SVG validation failed: ${e.message}` };
+    }
+  }
   }
 }
 
@@ -1350,6 +1386,18 @@ async function validateAndRender() {
     console.log('[validateAndRender] Calling renderMermaidDiagram...');
     const svg = await renderMermaidDiagram(mermaidSource);
     console.log('[validateAndRender] Got SVG from Mermaid, length:', svg.length);
+    
+        // Validate SVG has actual content
+        const contentCheck = validateSvgHasContent(svg);
+        if (!contentCheck.valid) {
+          const msg = contentCheck.reason || 'Empty SVG generated';
+          console.error('[validateAndRender]', msg);
+          editorError.textContent = msg;
+          editorError.classList.add('show');
+          showToast(msg, 'error');
+          return false;
+        }
+        console.log('[validateAndRender] SVG content validation passed');
     
     // Apply accessibility transformations
     console.log('[validateAndRender] Applying accessibility transformations...');
