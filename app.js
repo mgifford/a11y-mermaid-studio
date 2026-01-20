@@ -31,6 +31,29 @@ const CONFIG = {
   examplesManifest: './examples/manifest.json',
 };
 
+// Fallback inline examples used when manifest fetch fails (e.g., file:// origin)
+const INLINE_EXAMPLES = {
+  'flowchart-inline.mmd': `flowchart TD
+    A[Start]
+    B[Process]
+    C[End]
+    A --> B --> C
+
+%%accTitle Inline flowchart demo
+%%accDescr Simple three-step flow from start to process to end
+`,
+  'gantt-inline.mmd': `gantt
+    dateFormat  YYYY-MM-DD
+    title Inline Gantt Demo
+    section Phase 1
+    Task A     :a1, 2024-01-01, 7d
+    Task B     :after a1, 5d
+
+%%accTitle Inline Gantt demo
+%%accDescr Two tasks showing simple dependency from Task A to Task B
+`,
+};
+
 const UNSUPPORTED_DIAGRAM_TYPES = new Set(['xychart']);
 
 function isDiagramTypeSupported(type) {
@@ -1368,7 +1391,12 @@ async function loadExamplesManifest() {
     return { ...manifest, examples: supportedExamples };
   } catch (error) {
     console.error('[loadExamplesManifest] Failed to load manifest:', error);
-    throw error;
+    console.warn('[loadExamplesManifest] Falling back to inline examples (likely file:// or fetch blocked)');
+    const inlineExamples = Object.keys(INLINE_EXAMPLES).map((file) => ({
+      file,
+      type: file.includes('gantt') ? 'gantt' : 'flowchart',
+    }));
+    return { examples: inlineExamples };
   }
 }
 
@@ -1393,6 +1421,10 @@ async function fetchExample(file) {
     return content;
   } catch (error) {
     console.error('[fetchExample] Failed to load example:', file, error);
+    if (INLINE_EXAMPLES[file]) {
+      console.warn('[fetchExample] Using inline fallback for', file);
+      return INLINE_EXAMPLES[file];
+    }
     throw error;
   }
 }
