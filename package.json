@@ -23,7 +23,7 @@
     "wcag",
     "aria"
   ],
-  "author": "Mark Gifford",
+  "author": "Mike Gifford",
   "license": "AGPL-3.0-or-later",
   "devDependencies": {
     "@axe-core/cli": "^4.8.0",

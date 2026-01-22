@@ -1,6 +1,6 @@
 /*
  * AGPL-3.0-or-later License - See LICENSE file for full text
- * Copyright (c) 2026 Mark Gifford
+ * Copyright (c) 2026 Mike Gifford
  * 
  * Feature Test Suite
  * Validates critical user workflows and Mermaid transformations
