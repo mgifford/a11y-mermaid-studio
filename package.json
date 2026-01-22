@@ -26,9 +26,10 @@
   "author": "Mark Gifford",
   "license": "AGPL-3.0-or-later",
   "devDependencies": {
-    "vitest": "^1.0.0",
-    "jsdom": "^23.0.0",
     "@axe-core/cli": "^4.8.0",
-    "pa11y": "^7.0.0"
+    "acorn": "^8.15.0",
+    "jsdom": "^23.0.0",
+    "pa11y": "^7.0.0",
+    "vitest": "^1.0.0"
   }
 }
