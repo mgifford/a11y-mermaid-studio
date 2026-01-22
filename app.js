@@ -575,26 +575,30 @@ function applyFlowchartSemantics(svg) {
  */
 async function checkBrowserAIAvailability() {
   try {
-    // Check for Chrome AI API (window.ai)
+    // Check for Chrome/Edge AI API (window.ai)
+    // Supported in: Chrome 128+, Edge 133+ (Chromium-based)
+    // Requires: OS support (Windows 11 24H2+, macOS 15.1+, Linux pending)
+    // User action: Must enable chrome://flags/#prompt-api-for-ai
     if ('ai' in window && 'languageModel' in window.ai) {
-      console.log('[AI] Chrome AI API detected');
+      console.log('[AI] Browser AI API detected (Chrome 128+/Edge 133+)');
       
       // Check if model is available
       const capabilities = await window.ai.languageModel.capabilities();
+      console.log('[AI] Model capabilities:', capabilities);
       
       if (capabilities.available === 'readily') {
         STATE.aiAvailable = true;
         console.log('[AI] Model readily available');
       } else if (capabilities.available === 'after-download') {
         STATE.aiAvailable = true;
-        console.log('[AI] Model available after download');
+        console.log('[AI] Model available after download (~2.5GB)');
       } else {
         STATE.aiAvailable = false;
         console.log('[AI] Model not available:', capabilities.available);
       }
     } else {
       STATE.aiAvailable = false;
-      console.log('[AI] Chrome AI API not found');
+      console.log('[AI] Browser AI API not found. Check: Chrome 128+/Edge 133+ with feature enabled');
     }
   } catch (error) {
     STATE.aiAvailable = false;
@@ -724,7 +728,44 @@ function getAudienceDescription() {
 }
 
 /**
+ * Extract visual context from SVG for AI analysis
+ * Provides a text-based summary of visual structure
+ */
+function extractSVGContext() {
+  try {
+    const svgElement = document.querySelector('svg[data-mermaid-id]');
+    if (!svgElement) return '';
+    
+    // Extract text labels from SVG
+    const textElements = svgElement.querySelectorAll('text');
+    const labels = Array.from(textElements)
+      .map(el => el.textContent?.trim())
+      .filter(text => text && text.length > 0 && text.length < 100)
+      .slice(0, 20); // Limit to prevent excessive data
+    
+    // Extract group roles (accessibility structure)
+    const groups = svgElement.querySelectorAll('[role="list"], [role="listitem"]');
+    const hasAccessibleStructure = groups.length > 0;
+    
+    // Build context string
+    let context = '';
+    if (hasAccessibleStructure) {
+      context += 'The diagram has accessible semantic structure (role="list" containers with role="listitem" elements).\n';
+    }
+    if (labels.length > 0) {
+      context += `Visual elements detected: ${labels.join(', ')}.\n`;
+    }
+    
+    return context;
+  } catch (error) {
+    console.log('[AI] Could not extract SVG context:', error);
+    return '';
+  }
+}
+
+/**
  * Enhance diagram narrative using browser AI
+ * Includes visual context from the generated SVG for better analysis
  */
 async function enhanceNarrativeWithAI(mermaidSource, currentNarrative, metadata) {
   if (!STATE.aiAvailable || !STATE.aiEnabled) {
@@ -743,6 +784,7 @@ async function enhanceNarrativeWithAI(mermaidSource, currentNarrative, metadata)
     
     const diagramType = detectDiagramType(mermaidSource) || 'unknown';
     const audienceDesc = getAudienceDescription();
+    const svgContext = extractSVGContext();
     
     // Create prompt for AI
     const prompt = `You are an accessibility expert reviewing a diagram narrative description.
@@ -751,6 +793,9 @@ DIAGRAM TYPE: ${diagramType}
 TITLE: ${metadata.title || 'Untitled'}
 DESCRIPTION: ${metadata.description || 'No description'}
 
+VISUAL CONTEXT FROM SVG:
+${svgContext}
+
 CURRENT NARRATIVE:
 ${stripHtmlTags(currentNarrative)}
 
@@ -758,12 +803,14 @@ ORIGINAL MERMAID SOURCE:
 ${mermaidSource}
 
 TASK:
-Review the current narrative description for accuracy and clarity. The audience is ${audienceDesc}.
+Review the narrative description for accuracy, clarity, and alignment with the visual structure. The audience is ${audienceDesc}.
+
+Consider the visual elements shown in the SVG context when evaluating accuracy.
 
 If the narrative accurately describes the diagram structure and content, respond with exactly: "Narrative is accurate."
 
 If there are improvements to suggest, provide a revised narrative that:
-1. Corrects any inaccuracies
+1. Corrects any inaccuracies or misalignments with visuals
 2. Improves clarity for the target audience
 3. Maintains similar structure (headings, lists, etc.)
 4. Keeps the same level of technical detail
@@ -771,7 +818,7 @@ If there are improvements to suggest, provide a revised narrative that:
 
 Respond with ONLY the revised narrative or "Narrative is accurate." Do not include explanations.`;
 
-    console.log('[AI] Sending prompt to language model...');
+    console.log('[AI] Sending prompt to language model (with SVG context)...');
     const response = await STATE.aiSession.prompt(prompt);
     console.log('[AI] Received response, length:', response.length);
     
@@ -789,6 +836,52 @@ function stripHtmlTags(html) {
   const div = document.createElement('div');
   div.innerHTML = html;
   return div.textContent || div.innerText || '';
+}
+
+/**
+ * Get browser AI diagnostics for debugging
+ * Shows what features the browser supports
+ * Call getBrowserAIDiagnostics() in console to explore available features
+ */
+function getBrowserAIDiagnostics() {
+  const diagnostics = {
+    timestamp: new Date().toISOString(),
+    browser: {
+      userAgent: navigator.userAgent,
+      hasAIAPI: 'ai' in window,
+      hasLanguageModel: 'ai' in window && 'languageModel' in window.ai,
+    },
+    os: {
+      platform: navigator.platform,
+      maxTouchPoints: navigator.maxTouchPoints,
+    },
+    ai: {
+      available: STATE.aiAvailable,
+      enabled: STATE.aiEnabled,
+      audience: STATE.aiAudience,
+    },
+    supportMatrix: {
+      'Chrome 128+': 'Gemini Nano (local)',
+      'Edge 133+': 'Gemini Nano (local)',
+      'Other browsers': 'Not supported (requires Chromium)',
+      'Feature flag': 'chrome://flags/#prompt-api-for-ai',
+    },
+    osRequirements: {
+      'Windows': '11 24H2 or later',
+      'macOS': '15.1 (Sequoia) or later',
+      'Linux': 'Support pending',
+    },
+    modelDetails: {
+      'Gemini Nano size': '~2.5 GB (downloaded once)',
+      'Processing': '100% local, no cloud calls',
+      'Privacy': 'All data stays in browser',
+      'Temperature': 0.7,
+      'TopK': 3,
+    },
+  };
+  
+  console.log('=== Browser AI Diagnostics ===');\n  console.table(diagnostics);
+  console.log('To check if your browser has AI enabled, run: getBrowserAIDiagnostics() in console');\n  return diagnostics;
 }
 
 /**

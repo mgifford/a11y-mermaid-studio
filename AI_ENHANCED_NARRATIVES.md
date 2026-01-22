@@ -2,15 +2,32 @@
 
 ## Overview
 
-A11y Mermaid Studio now includes **optional AI-enhanced narrative generation** using Chrome's built-in Gemini Nano model. This feature provides intelligent improvements to diagram narratives while maintaining complete user privacy—all processing happens locally in the browser.
+A11y Mermaid Studio now includes **optional AI-enhanced narrative generation** using local browser AI (Gemini Nano). This feature provides intelligent improvements to diagram narratives while maintaining complete user privacy—all processing happens locally in the browser.
+
+### Browser Support
+
+| Browser | Support | OS Requirements | Model |
+|---------|---------|-----------------|-------|
+| **Chrome** | 128+ | Windows 11 24H2+, macOS 15.1+, Linux pending | Gemini Nano |
+| **Edge** | 133+ | Windows 11 24H2+, macOS 15.1+, Linux pending | Gemini Nano |
+| **Others** | ❌ Not available | N/A | N/A |
+
+**Requirement**: Must enable feature flag at `chrome://flags/#prompt-api-for-ai`
+
+**To explore available features**, open the browser console and run:
+```javascript
+getBrowserAIDiagnostics()
+```
+This shows your browser's AI support matrix, OS requirements, and current settings.
 
 ## What It Does
 
 The AI enhancement:
 1. **Reviews** the automatically generated narrative against the diagram source
-2. **Validates** accuracy of the structural description
-3. **Improves** clarity and readability for the target audience
-4. **Adapts** technical detail level based on audience settings
+2. **Validates** accuracy of the structural description  
+3. **Considers visual context** from the generated SVG
+4. **Improves** clarity and readability for the target audience
+5. **Adapts** technical detail level based on audience settings
 
 **Key Principle**: The AI enhances but never replaces the baseline accessibility. All diagrams receive structural narratives even without AI.
 
@@ -30,13 +47,24 @@ When you first load the application:
 When enabled and a diagram is rendered:
 
 1. **Baseline Generation**: Standard narrative is created first (always works)
-2. **AI Review**: The AI analyzes:
+2. **SVG Context Extraction**: Visual elements and accessible structure from the generated SVG
+3. **AI Review**: The AI analyzes:
    - Diagram type and structure
    - Current narrative accuracy
+   - Visual context and semantic structure
    - Target audience requirements
-3. **Response**:
+4. **Response**:
    - **"Narrative is accurate."** → Shows green checkmark, keeps original
    - **Improved narrative** → Shows both AI version and original (in collapsible section)
+
+### Visual Context in AI Analysis
+
+The AI doesn't just read the text—it also considers:
+- **Visual Elements**: Text labels and visual components detected in the SVG
+- **Semantic Structure**: Whether the SVG has accessible `role="list"` and `role="listitem"` containers
+- **Alignment**: Ensures the narrative accurately describes what's visually present
+
+This makes AI improvements more accurate and grounded in actual diagram visuals.
 
 ### Privacy & Security
 
@@ -44,6 +72,7 @@ When enabled and a diagram is rendered:
 - ✅ **No Network Calls**: Diagram data never leaves your device
 - ✅ **No Tracking**: No analytics or data collection
 - ✅ **Optional**: Completely opt-in, works fine without AI
+- ✅ **Visual-Aware**: AI sees visual structure but performs no external analysis
 
 ## User Interface
 
@@ -100,10 +129,24 @@ Access via the "⚙️ AI Settings" button (visible only when AI is available):
 
 ### Browser API Requirements
 
-**Chrome AI API (Gemini Nano)**:
-- Requires Chrome 128+ with AI features enabled
+**Chrome/Edge AI API (Gemini Nano)**:
+- Chrome 128+, Edge 133+ with AI features enabled
 - Check availability: `window.ai?.languageModel?.capabilities()`
-- Statuses: `readily`, `after-download`, `no`
+- Capabilities statuses: `'readily'`, `'after-download'`, `'no'`
+- Model size: ~2.5 GB (downloaded once, cached locally)
+
+**To explore what your browser supports:**
+```javascript
+// Run in browser console:
+getBrowserAIDiagnostics()
+```
+
+This displays:
+- Browser version and AI API availability
+- Operating system and requirements
+- Current AI settings (enabled/disabled, audience)
+- Support matrix for different browsers
+- Model storage and processing details
 
 ### State Management
 
@@ -112,7 +155,7 @@ STATE = {
   aiAvailable: false,      // Detected at startup
   aiSession: null,         // Created on first use
   aiEnabled: null,         // null = not asked, true/false = user choice
-  aiAudience: 'general'   // Target audience setting
+  aiAudience: 'general'    // Target audience setting
 }
 ```
 
@@ -125,14 +168,22 @@ STATE = {
 
 The AI receives:
 1. **Context**: Diagram type, title, description
-2. **Current Narrative**: HTML content (stripped to plain text)
-3. **Original Source**: Full Mermaid code
-4. **Target Audience**: Description of who will read this
-5. **Task**: Review for accuracy, suggest improvements if needed
+2. **Visual Context**: SVG elements, semantic structure, detected labels
+3. **Current Narrative**: HTML content (stripped to plain text)
+4. **Original Source**: Full Mermaid code
+5. **Target Audience**: Description of who will read this
+6. **Task**: Review for accuracy and visual alignment, suggest improvements if needed
 
 **Response Format**:
 - If accurate: Exactly `"Narrative is accurate."`
 - If improvements: Plain HTML using `<p>`, `<strong>`, `<em>`, `<ul>`, `<ol>`, `<li>` tags
+
+**SVG Context Example**:
+```
+VISUAL CONTEXT FROM SVG:
+The diagram has accessible semantic structure (role="list" containers with role="listitem" elements).
+Visual elements detected: Start, Decision Node, Process, End.
+```
 
 ### Function Flow
 
@@ -142,12 +193,32 @@ generateDiagramNarrative(source, metadata)
   ├─> detectDiagramType()
   ├─> generate*Narrative() // Type-specific
   ├─> Display baseline
-  └─> if (aiEnabled) enhanceNarrativeWithAI()
-      ├─> Create AI session
-      ├─> Send prompt
-      ├─> Parse response
-      └─> Update UI
+  └─> if (aiEnabled)
+      ├─> extractSVGContext() // Get visual structure
+      ├─> enhanceNarrativeWithAI()
+      │   ├─> Create AI session (if needed)
+      │   ├─> Build prompt with SVG context
+      │   ├─> Send prompt to Gemini Nano
+      │   ├─> Parse response
+      │   └─> Return improved narrative
+      └─> Update UI (show AI improvement or checkmark)
 ```
+
+### New Function: extractSVGContext()
+
+```javascript
+/**
+ * Extracts visual context from generated SVG
+ * Returns text summary of accessible structure and visual elements
+ */
+function extractSVGContext() {
+  // Finds text labels in SVG (limited to 20 labels)
+  // Checks for accessible semantic structure (role="list", role="listitem")
+  // Returns context string for AI prompt
+}
+```
+
+This ensures the AI makes improvements grounded in actual visual elements, not just the Mermaid source.
 
 ## Configuration
 
