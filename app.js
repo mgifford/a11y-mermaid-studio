@@ -1986,12 +1986,39 @@ function attachEventListeners() {
   const aiAudienceSelect = document.getElementById('ai-audience-inline');
 
   if (aiSettingsInline) {
-    // Show settings only if AI is available
+    // Show settings always so users can see where they are
+    aiSettingsInline.style.display = 'block';
+
     if (STATE.aiAvailable) {
-      aiSettingsInline.style.display = 'block';
-      // Also show audience selector if AI is enabled
+      // AI Available: Enable controls
+      aiEnabledToggle.disabled = false;
+      aiEnabledToggle.parentElement.title = "Enable local AI narrative enhancement";
+      
       if (STATE.aiEnabled) {
         aiAudienceSelect.style.display = 'block';
+        
+        // Restore saved toggle state
+        if (aiEnabledToggle && STATE.aiEnabled !== null) {
+          aiEnabledToggle.checked = STATE.aiEnabled;
+        }
+      }
+    } else {
+      // AI Not Available: Disable controls and show explanation
+      aiEnabledToggle.disabled = true;
+      aiEnabledToggle.checked = false;
+      aiAudienceSelect.style.display = 'none';
+      
+      const label = document.querySelector('label[for="ai-enabled-inline"]');
+      if (label) {
+        label.style.opacity = '0.6';
+        label.style.cursor = 'not-allowed';
+        // Add detailed tooltip
+        label.title = "Local AI not detected. Requires Chrome 128+ or Edge 133+ with 'Prompt API for AI' flag enabled.";
+        
+        const span = label.querySelector('span');
+        if (span && !span.textContent.includes('Unavailable')) {
+          span.textContent = "🤖 Enhance with AI (Unavailable)";
+        }
       }
     }
 
