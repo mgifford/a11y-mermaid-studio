@@ -69,6 +69,11 @@ const STATE = {
   optimizedSvg: '', // Optimized version
   userEdited: false, // Tracks whether user has edited the Mermaid source
   lastPreviewToastMs: 0,
+  // AI enhancement state
+  aiAvailable: false,
+  aiSession: null,
+  aiEnabled: null, // null = not asked, true = enabled, false = disabled
+  aiAudience: 'general', // 'general', 'technical', 'nontechnical', 'students', 'executives'
 };
 
 /**
@@ -85,6 +90,12 @@ async function initializeApp() {
       loadSVGO()
     ]);
     console.log('[Init] Libraries loaded successfully');
+
+    // Check for browser AI availability
+    await checkBrowserAIAvailability();
+    
+    // Load AI preferences from localStorage
+    loadAIPreferences();
 
     // Seed empty highlight layer
     renderSvgHighlight('');
@@ -559,14 +570,240 @@ function applyFlowchartSemantics(svg) {
 }
 
 /**
+ * Check if browser AI is available (Chrome's Gemini Nano)
+ * Sets STATE.aiAvailable based on detection
+ */
+async function checkBrowserAIAvailability() {
+  try {
+    // Check for Chrome AI API (window.ai)
+    if ('ai' in window && 'languageModel' in window.ai) {
+      console.log('[AI] Chrome AI API detected');
+      
+      // Check if model is available
+      const capabilities = await window.ai.languageModel.capabilities();
+      
+      if (capabilities.available === 'readily') {
+        STATE.aiAvailable = true;
+        console.log('[AI] Model readily available');
+      } else if (capabilities.available === 'after-download') {
+        STATE.aiAvailable = true;
+        console.log('[AI] Model available after download');
+      } else {
+        STATE.aiAvailable = false;
+        console.log('[AI] Model not available:', capabilities.available);
+      }
+    } else {
+      STATE.aiAvailable = false;
+      console.log('[AI] Chrome AI API not found');
+    }
+  } catch (error) {
+    STATE.aiAvailable = false;
+    console.log('[AI] Error checking AI availability:', error);
+  }
+}
+
+/**
+ * Load AI preferences from localStorage
+ */
+function loadAIPreferences() {
+  try {
+    const enabled = localStorage.getItem('a11y-mermaid-ai-enabled');
+    const audience = localStorage.getItem('a11y-mermaid-ai-audience');
+    
+    if (enabled !== null) {
+      STATE.aiEnabled = enabled === 'true';
+      console.log('[AI] Loaded preference: enabled =', STATE.aiEnabled);
+    }
+    
+    if (audience) {
+      STATE.aiAudience = audience;
+      console.log('[AI] Loaded preference: audience =', STATE.aiAudience);
+    }
+  } catch (error) {
+    console.error('[AI] Error loading preferences:', error);
+  }
+}
+
+/**
+ * Save AI preferences to localStorage
+ */
+function saveAIPreferences() {
+  try {
+    localStorage.setItem('a11y-mermaid-ai-enabled', String(STATE.aiEnabled));
+    localStorage.setItem('a11y-mermaid-ai-audience', STATE.aiAudience);
+    console.log('[AI] Saved preferences');
+  } catch (error) {
+    console.error('[AI] Error saving preferences:', error);
+  }
+}
+
+/**
+ * Show AI opt-in prompt (only once)
+ */
+function showAIOptInPrompt() {
+  // Only show if AI is available and user hasn't decided yet
+  if (!STATE.aiAvailable || STATE.aiEnabled !== null) {
+    return;
+  }
+  
+  const narrativeDiv = document.getElementById('diagram-narrative');
+  if (!narrativeDiv) return;
+  
+  const promptHtml = `
+    <div id="ai-opt-in-prompt" style="
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    ">
+      <h4 style="margin: 0 0 0.5rem 0; font-size: 1rem;">
+        🤖 Try Local AI Browser Enhancement?
+      </h4>
+      <p style="margin: 0 0 0.75rem 0; font-size: 0.9rem; opacity: 0.95;">
+        Your browser has built-in AI that can help improve diagram narratives.
+        The AI runs locally in your browser—no data is sent to external servers.
+      </p>
+      <div style="display: flex; gap: 0.5rem;">
+        <button id="ai-opt-in-yes" style="
+          background: white;
+          color: #667eea;
+          border: none;
+          padding: 0.5rem 1rem;
+          border-radius: 4px;
+          cursor: pointer;
+          font-weight: 600;
+        ">Enable AI Enhancement</button>
+        <button id="ai-opt-in-no" style="
+          background: rgba(255,255,255,0.2);
+          color: white;
+          border: 1px solid rgba(255,255,255,0.3);
+          padding: 0.5rem 1rem;
+          border-radius: 4px;
+          cursor: pointer;
+        ">Not Now</button>
+      </div>
+    </div>
+  `;
+  
+  narrativeDiv.insertAdjacentHTML('beforebegin', promptHtml);
+  
+  // Add event listeners
+  document.getElementById('ai-opt-in-yes')?.addEventListener('click', async () => {
+    STATE.aiEnabled = true;
+    saveAIPreferences();
+    document.getElementById('ai-opt-in-prompt')?.remove();
+    console.log('[AI] User enabled AI enhancement');
+    // Re-generate narrative with AI
+    const mermaidSource = document.getElementById('mermaid-source')?.value || '';
+    const metadata = parseMermaidMetadata(mermaidSource);
+    await generateDiagramNarrative(mermaidSource, metadata);
+  });
+  
+  document.getElementById('ai-opt-in-no')?.addEventListener('click', () => {
+    STATE.aiEnabled = false;
+    saveAIPreferences();
+    document.getElementById('ai-opt-in-prompt')?.remove();
+    console.log('[AI] User declined AI enhancement');
+  });
+}
+
+/**
+ * Get audience description for AI prompt
+ */
+function getAudienceDescription() {
+  const descriptions = {
+    general: 'a general audience with mixed technical backgrounds',
+    technical: 'software developers and technical professionals',
+    nontechnical: 'non-technical stakeholders and business users',
+    students: 'students learning about the subject matter',
+    executives: 'executives and decision-makers focused on high-level insights'
+  };
+  return descriptions[STATE.aiAudience] || descriptions.general;
+}
+
+/**
+ * Enhance diagram narrative using browser AI
+ */
+async function enhanceNarrativeWithAI(mermaidSource, currentNarrative, metadata) {
+  if (!STATE.aiAvailable || !STATE.aiEnabled) {
+    return null;
+  }
+  
+  try {
+    // Create AI session if needed
+    if (!STATE.aiSession) {
+      console.log('[AI] Creating language model session...');
+      STATE.aiSession = await window.ai.languageModel.create({
+        temperature: 0.7,
+        topK: 3,
+      });
+    }
+    
+    const diagramType = detectDiagramType(mermaidSource) || 'unknown';
+    const audienceDesc = getAudienceDescription();
+    
+    // Create prompt for AI
+    const prompt = `You are an accessibility expert reviewing a diagram narrative description.
+
+DIAGRAM TYPE: ${diagramType}
+TITLE: ${metadata.title || 'Untitled'}
+DESCRIPTION: ${metadata.description || 'No description'}
+
+CURRENT NARRATIVE:
+${stripHtmlTags(currentNarrative)}
+
+ORIGINAL MERMAID SOURCE:
+${mermaidSource}
+
+TASK:
+Review the current narrative description for accuracy and clarity. The audience is ${audienceDesc}.
+
+If the narrative accurately describes the diagram structure and content, respond with exactly: "Narrative is accurate."
+
+If there are improvements to suggest, provide a revised narrative that:
+1. Corrects any inaccuracies
+2. Improves clarity for the target audience
+3. Maintains similar structure (headings, lists, etc.)
+4. Keeps the same level of technical detail
+5. Uses plain HTML formatting (p, strong, em, ul, ol, li tags only)
+
+Respond with ONLY the revised narrative or "Narrative is accurate." Do not include explanations.`;
+
+    console.log('[AI] Sending prompt to language model...');
+    const response = await STATE.aiSession.prompt(prompt);
+    console.log('[AI] Received response, length:', response.length);
+    
+    return response.trim();
+  } catch (error) {
+    console.error('[AI] Error enhancing narrative:', error);
+    return null;
+  }
+}
+
+/**
+ * Strip HTML tags for plain text (used in AI prompts)
+ */
+function stripHtmlTags(html) {
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  return div.textContent || div.innerText || '';
+}
+
+/**
  * Generate a narrative description of the diagram structure
  * Analyzes Mermaid source and converts it to prose
+ * Optionally enhances with AI if enabled
  */
-function generateDiagramNarrative(mermaidSource, metadata) {
+async function generateDiagramNarrative(mermaidSource, metadata) {
   const narrativeDiv = document.getElementById('diagram-narrative');
   if (!narrativeDiv) return;
   
   console.log('[Narrative] Generating narrative for diagram');
+  
+  // Show AI opt-in prompt if applicable (only once)
+  showAIOptInPrompt();
   
   // Detect diagram type
   const diagramType = detectDiagramType(mermaidSource);
@@ -583,30 +820,31 @@ function generateDiagramNarrative(mermaidSource, metadata) {
   }
   
   // Generate type-specific narrative
+  let structuralNarrative = '';
   switch (diagramType) {
     case 'flowchart':
-      narrative += generateFlowchartNarrative(mermaidSource);
+      structuralNarrative = generateFlowchartNarrative(mermaidSource);
       break;
     case 'pie':
-      narrative += generatePieNarrative(mermaidSource);
+      structuralNarrative = generatePieNarrative(mermaidSource);
       break;
     case 'classDiagram':
-      narrative += generateClassDiagramNarrative(mermaidSource);
+      structuralNarrative = generateClassDiagramNarrative(mermaidSource);
       break;
     case 'gantt':
-      narrative += generateGanttNarrative(mermaidSource);
+      structuralNarrative = generateGanttNarrative(mermaidSource);
       break;
     case 'journey':
-      narrative += generateUserJourneyNarrative(mermaidSource);
+      structuralNarrative = generateUserJourneyNarrative(mermaidSource);
       break;
     case 'mindmap':
-      narrative += generateMindmapNarrative(mermaidSource);
+      structuralNarrative = generateMindmapNarrative(mermaidSource);
       break;
     case 'timeline':
-      narrative += generateTimelineNarrative(mermaidSource);
+      structuralNarrative = generateTimelineNarrative(mermaidSource);
       break;
     case 'xychart':
-      narrative += generateXyChartNarrative(mermaidSource);
+      structuralNarrative = generateXyChartNarrative(mermaidSource);
       break;
     // All other detected types get generic fallback
     case 'sequenceDiagram':
@@ -624,13 +862,66 @@ function generateDiagramNarrative(mermaidSource, metadata) {
     case 'architecture':
     case 'radar':
     case 'treemap':
-      narrative += generateGenericNarrative(mermaidSource, diagramType);
+      structuralNarrative = generateGenericNarrative(mermaidSource, diagramType);
       break;
     default:
-      narrative += generateGenericNarrative(mermaidSource, diagramType || 'unknown');
+      structuralNarrative = generateGenericNarrative(mermaidSource, diagramType || 'unknown');
   }
   
+  narrative += structuralNarrative;
+  
+  // Display the baseline narrative first
   narrativeDiv.innerHTML = narrative;
+  
+  // Try AI enhancement if enabled
+  if (STATE.aiEnabled) {
+    try {
+      console.log('[Narrative] Attempting AI enhancement...');
+      const aiEnhancement = await enhanceNarrativeWithAI(mermaidSource, structuralNarrative, metadata);
+      
+      if (aiEnhancement) {
+        if (aiEnhancement === 'Narrative is accurate.') {
+          // AI approved the narrative
+          const approvalHtml = `
+            <div style="
+              background: #d4edda;
+              border: 1px solid #c3e6cb;
+              color: #155724;
+              padding: 0.75rem;
+              border-radius: 4px;
+              margin-top: 1rem;
+              font-size: 0.9em;
+            ">
+              <strong>✓ AI Review:</strong> Narrative is accurate.
+            </div>
+          `;
+          narrativeDiv.innerHTML = narrative + approvalHtml;
+        } else {
+          // AI suggested improvements
+          const enhancedHtml = `
+            <div style="margin-top: 1.5rem; border-top: 2px solid #667eea; padding-top: 1rem;">
+              <h4 style="color: #667eea; margin: 0 0 0.5rem 0; font-size: 0.95rem;">
+                🤖 AI-Enhanced Narrative
+              </h4>
+              ${aiEnhancement}
+            </div>
+            <details style="margin-top: 1rem;">
+              <summary style="cursor: pointer; color: #666; font-size: 0.85em;">
+                Show original structural narrative
+              </summary>
+              <div style="margin-top: 0.5rem; padding: 0.75rem; background: #f8f9fa; border-radius: 4px;">
+                ${structuralNarrative}
+              </div>
+            </details>
+          `;
+          narrativeDiv.innerHTML = narrative + enhancedHtml;
+        }
+      }
+    } catch (error) {
+      console.error('[Narrative] AI enhancement failed:', error);
+      // Keep the original narrative on error
+    }
+  }
 }
 
 /**
@@ -1567,6 +1858,60 @@ function attachEventListeners() {
       }
     });
   });
+
+  // AI Settings Modal
+  const aiSettingsBtn = document.getElementById('ai-settings-btn');
+  const aiSettingsModal = document.getElementById('ai-settings-modal');
+  const aiSettingsCancel = document.getElementById('ai-settings-cancel');
+  const aiSettingsSave = document.getElementById('ai-settings-save');
+  const aiEnabledToggle = document.getElementById('ai-enabled-toggle');
+  const aiAudienceSelect = document.getElementById('ai-audience-select');
+
+  if (aiSettingsBtn && aiSettingsModal) {
+    // Show settings button only if AI is available
+    if (STATE.aiAvailable) {
+      aiSettingsBtn.style.display = 'block';
+    }
+
+    aiSettingsBtn.addEventListener('click', () => {
+      // Populate current values
+      if (aiEnabledToggle) {
+        aiEnabledToggle.checked = STATE.aiEnabled === true;
+      }
+      if (aiAudienceSelect) {
+        aiAudienceSelect.value = STATE.aiAudience;
+      }
+      aiSettingsModal.hidden = false;
+    });
+
+    aiSettingsCancel?.addEventListener('click', () => {
+      aiSettingsModal.hidden = true;
+    });
+
+    aiSettingsSave?.addEventListener('click', async () => {
+      // Save preferences
+      STATE.aiEnabled = aiEnabledToggle?.checked ?? false;
+      STATE.aiAudience = aiAudienceSelect?.value ?? 'general';
+      saveAIPreferences();
+      
+      aiSettingsModal.hidden = true;
+      showToast('AI settings saved', 'success');
+      
+      // Re-generate narrative if diagram is loaded
+      const mermaidSource = document.getElementById('mermaid-source')?.value || '';
+      if (mermaidSource.trim()) {
+        const metadata = parseMermaidMetadata(mermaidSource);
+        await generateDiagramNarrative(mermaidSource, metadata);
+      }
+    });
+
+    // Close modal on outside click
+    aiSettingsModal.addEventListener('click', (e) => {
+      if (e.target === aiSettingsModal) {
+        aiSettingsModal.hidden = true;
+      }
+    });
+  }
 }
 
 /** Load examples manifest */
@@ -1773,7 +2118,7 @@ async function validateAndRender() {
     
     // Generate and display narrative
     console.log('[validateAndRender] Generating narrative...');
-    generateDiagramNarrative(mermaidSource, metadata);
+    await generateDiagramNarrative(mermaidSource, metadata);
 
     // Notify when the accessible preview is refreshed (throttled)
     const now = Date.now();

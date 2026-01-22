@@ -63,11 +63,22 @@ These are injected into the SVG as `<title>` and `<desc>` elements, which are es
 - **Mermaid:** Loaded from CDN (pinned version)
 - **Accessibility:** Based on normative specifications (Watson, Fisher, W3C)
 - **Theme support:** Light/dark mode with contrast validation
+- **AI Enhancement:** Optional local AI (Chrome's Gemini Nano) for narrative improvement
 - **Testing:** Vitest + Axe + Pa11y for quality assurance
 
 ## Narrative Generation Support
 
 The tool automatically generates accessible prose narratives for diagram types:
+
+### AI-Enhanced Narratives (Optional) 🤖
+
+If you're using **Chrome 128+**, the app can optionally use Chrome's built-in AI (Gemini Nano) to:
+- Review narrative accuracy
+- Improve clarity for your target audience
+- Adapt technical detail level
+- **100% private—all processing happens locally in your browser**
+
+See [AI_ENHANCED_NARRATIVES.md](./AI_ENHANCED_NARRATIVES.md) for details.
 
 ### Fully Implemented (8 types)
 
