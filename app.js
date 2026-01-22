@@ -74,6 +74,11 @@ const STATE = {
   aiSession: null,
   aiEnabled: null, // null = not asked, true = enabled, false = disabled
   aiAudience: 'general', // 'general', 'technical', 'nontechnical', 'students', 'executives'
+  aiUsageCount: 0,
+  aiLastUsedAt: null,
+  aiLastOutcome: null,
+  aiLastResponseLength: 0,
+  aiLastResponsePreview: '',
 };
 
 /**
@@ -135,6 +140,7 @@ async function initializeApp() {
       }
     
     console.log('Application ready');
+    exposeAIConsoleHelpers();
   } catch (error) {
     console.error('[Init] Fatal initialization error:', error);
     showError(`Initialization failed: ${error.message}`);
@@ -766,10 +772,20 @@ Respond with ONLY the revised narrative or "Narrative is accurate." Do not inclu
     console.log('[AI] Sending prompt to language model (with SVG context)...');
     const response = await STATE.aiSession.prompt(prompt);
     console.log('[AI] Received response, length:', response.length);
+    const trimmedResponse = response.trim();
+
+    STATE.aiUsageCount += 1;
+    STATE.aiLastUsedAt = new Date().toISOString();
+    STATE.aiLastOutcome = trimmedResponse === 'Narrative is accurate.' ? 'approved' : 'enhanced';
+    STATE.aiLastResponseLength = trimmedResponse.length;
+    STATE.aiLastResponsePreview = trimmedResponse.slice(0, 160).replace(/\s+/g, ' ');
     
-    return response.trim();
+    return trimmedResponse;
   } catch (error) {
     console.error('[AI] Error enhancing narrative:', error);
+    STATE.aiLastOutcome = 'error';
+    STATE.aiLastResponsePreview = '';
+    STATE.aiLastResponseLength = 0;
     return null;
   }
 }
@@ -829,6 +845,71 @@ function getBrowserAIDiagnostics() {
   console.table(diagnostics);
   console.log('To check if your browser has AI enabled, run: getBrowserAIDiagnostics() in console');
   return diagnostics;
+}
+
+function logConsoleTable(label, data) {
+  console.log(`=== ${label} ===`);
+  if (console.table) {
+    console.table([data]);
+  } else {
+    console.log(data);
+  }
+  return data;
+}
+
+function exposeAIConsoleHelpers() {
+  if (typeof window === 'undefined') return;
+
+  const getAvailability = () => {
+    const status = {
+      available: STATE.aiAvailable,
+      enabled: STATE.aiEnabled,
+      sessionActive: Boolean(STATE.aiSession),
+      audience: STATE.aiAudience,
+    };
+    return logConsoleTable('AI Availability', status);
+  };
+
+  const getUsage = () => {
+    const usage = {
+      usageCount: STATE.aiUsageCount,
+      lastUsedAt: STATE.aiLastUsedAt || 'never',
+      lastOutcome: STATE.aiLastOutcome || 'n/a',
+      lastResponseChars: STATE.aiLastResponseLength,
+      lastResponsePreview: STATE.aiLastResponsePreview || '',
+    };
+    return logConsoleTable('AI Usage', usage);
+  };
+
+  const helpers = {
+    getAvailability,
+    getUsage,
+    diagnostics: () => getBrowserAIDiagnostics(),
+    enable() {
+      STATE.aiEnabled = true;
+      saveAIPreferences();
+      return getAvailability();
+    },
+    disable() {
+      STATE.aiEnabled = false;
+      saveAIPreferences();
+      return getAvailability();
+    },
+  };
+
+  Object.defineProperty(helpers, 'state', {
+    get() {
+      return { ...STATE };
+    },
+  });
+
+  window.A11yMermaidAI = helpers;
+
+  if (!('getBrowserAIDiagnostics' in window)) {
+    window.getBrowserAIDiagnostics = getBrowserAIDiagnostics;
+  }
+
+  console.log('ℹ️ AI console helpers ready. Try A11yMermaidAI.getAvailability() or A11yMermaidAI.getUsage().');
 }
 
 /**

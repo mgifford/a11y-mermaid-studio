@@ -80,6 +80,14 @@ If you're using **Chrome 128+**, the app can optionally use Chrome's built-in AI
 
 See [AI_ENHANCED_NARRATIVES.md](./AI_ENHANCED_NARRATIVES.md) for details.
 
+#### Diagnose Local AI Availability
+
+If the inline "Enhance with AI" controls do not appear:
+1. Open DevTools → Console and run `checkBrowserAIStatus()` to see whether `window.ai` exists, if the language model is ready, or if Chrome/Edge flags/OS requirements are missing.
+2. Run `A11yMermaidAI.getAvailability()` to confirm detection state, and `A11yMermaidAI.getUsage()` after triggering an enhancement to verify responses are recorded.
+3. Use `A11yMermaidAI.enable()` / `A11yMermaidAI.disable()` to toggle preferences without touching localStorage directly.
+4. Include the logged output when filing AI-related bugs so maintainers can reproduce the environment.
+
 ### Fully Implemented (8 types)
 
 | Type | Narrative | Example Output |

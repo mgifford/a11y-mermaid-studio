@@ -273,6 +273,14 @@ The following must be manually verifiable with assistive technology:
 
 If a change cannot be verified with assistive technology, it is not complete.
 
+### AI Diagnostics Helpers
+
+Local AI is optional but, when enabled, must include debugging affordances:
+- `ai-diagnostics.js` exposes `checkBrowserAIStatus()` for quick console checks (verifies `window.ai`, model readiness, OS/flag requirements).
+- `window.A11yMermaidAI` provides `getAvailability()`, `getUsage()`, `diagnostics()`, `enable()`, and `disable()` helpers plus read-only state snapshots.
+- When AI UI controls are missing, maintainers must reproduce with Chrome/Edge 128+ and capture console output from the helpers before filing issues.
+- Document any AI-related regressions with the helper output to ensure deterministic reproduction steps.
+
 ## File Organization Rules
 
 - **Core application:** `index.html`, `app.js`, `styles.css` form the single-page application
