@@ -645,72 +645,17 @@ function saveAIPreferences() {
  * Show AI opt-in prompt (only once)
  */
 function showAIOptInPrompt() {
-  // Only show if AI is available and user hasn't decided yet
-  if (!STATE.aiAvailable || STATE.aiEnabled !== null) {
-    return;
-  }
+  // Discovery model: don't force opt-in
+  // AI settings are available via the Settings button when AI is available
+  // User chooses to enable in settings, not via modal prompt
+  // This respects the principle of not being "in your face"
   
-  const narrativeDiv = document.getElementById('diagram-narrative');
-  if (!narrativeDiv) return;
-  
-  const promptHtml = `
-    <div id="ai-opt-in-prompt" style="
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 1rem;
-      border-radius: 8px;
-      margin-bottom: 1rem;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    ">
-      <h4 style="margin: 0 0 0.5rem 0; font-size: 1rem;">
-        🤖 Try Local AI Browser Enhancement?
-      </h4>
-      <p style="margin: 0 0 0.75rem 0; font-size: 0.9rem; opacity: 0.95;">
-        Your browser has built-in AI that can help improve diagram narratives.
-        The AI runs locally in your browser—no data is sent to external servers.
-      </p>
-      <div style="display: flex; gap: 0.5rem;">
-        <button id="ai-opt-in-yes" style="
-          background: white;
-          color: #667eea;
-          border: none;
-          padding: 0.5rem 1rem;
-          border-radius: 4px;
-          cursor: pointer;
-          font-weight: 600;
-        ">Enable AI Enhancement</button>
-        <button id="ai-opt-in-no" style="
-          background: rgba(255,255,255,0.2);
-          color: white;
-          border: 1px solid rgba(255,255,255,0.3);
-          padding: 0.5rem 1rem;
-          border-radius: 4px;
-          cursor: pointer;
-        ">Not Now</button>
-      </div>
-    </div>
-  `;
-  
-  narrativeDiv.insertAdjacentHTML('beforebegin', promptHtml);
-  
-  // Add event listeners
-  document.getElementById('ai-opt-in-yes')?.addEventListener('click', async () => {
-    STATE.aiEnabled = true;
-    saveAIPreferences();
-    document.getElementById('ai-opt-in-prompt')?.remove();
-    console.log('[AI] User enabled AI enhancement');
-    // Re-generate narrative with AI
-    const mermaidSource = document.getElementById('mermaid-source')?.value || '';
-    const metadata = parseMermaidMetadata(mermaidSource);
-    await generateDiagramNarrative(mermaidSource, metadata);
-  });
-  
-  document.getElementById('ai-opt-in-no')?.addEventListener('click', () => {
+  // Only initialize preferences if not already set
+  if (STATE.aiAvailable && STATE.aiEnabled === null) {
+    // Default to disabled, user can opt-in via settings button
     STATE.aiEnabled = false;
     saveAIPreferences();
-    document.getElementById('ai-opt-in-prompt')?.remove();
-    console.log('[AI] User declined AI enhancement');
-  });
+  }
 }
 
 /**
@@ -1952,43 +1897,28 @@ function attachEventListeners() {
     });
   });
 
-  // AI Settings Modal
-  const aiSettingsBtn = document.getElementById('ai-settings-btn');
-  const aiSettingsModal = document.getElementById('ai-settings-modal');
-  const aiSettingsCancel = document.getElementById('ai-settings-cancel');
-  const aiSettingsSave = document.getElementById('ai-settings-save');
-  const aiEnabledToggle = document.getElementById('ai-enabled-toggle');
-  const aiAudienceSelect = document.getElementById('ai-audience-select');
+  // AI Settings: Inline Controls
+  const aiSettingsInline = document.getElementById('ai-settings-inline');
+  const aiEnabledToggle = document.getElementById('ai-enabled-inline');
+  const aiAudienceSelect = document.getElementById('ai-audience-inline');
 
-  if (aiSettingsBtn && aiSettingsModal) {
-    // Show settings button only if AI is available
+  if (aiSettingsInline) {
+    // Show settings only if AI is available
     if (STATE.aiAvailable) {
-      aiSettingsBtn.style.display = 'block';
+      aiSettingsInline.style.display = 'block';
+      // Also show audience selector if AI is enabled
+      if (STATE.aiEnabled) {
+        aiAudienceSelect.style.display = 'block';
+      }
     }
 
-    aiSettingsBtn.addEventListener('click', () => {
-      // Populate current values
-      if (aiEnabledToggle) {
-        aiEnabledToggle.checked = STATE.aiEnabled === true;
-      }
-      if (aiAudienceSelect) {
-        aiAudienceSelect.value = STATE.aiAudience;
-      }
-      aiSettingsModal.hidden = false;
-    });
-
-    aiSettingsCancel?.addEventListener('click', () => {
-      aiSettingsModal.hidden = true;
-    });
-
-    aiSettingsSave?.addEventListener('click', async () => {
-      // Save preferences
-      STATE.aiEnabled = aiEnabledToggle?.checked ?? false;
-      STATE.aiAudience = aiAudienceSelect?.value ?? 'general';
+    // AI Enable/Disable Toggle
+    aiEnabledToggle?.addEventListener('change', async () => {
+      STATE.aiEnabled = aiEnabledToggle.checked;
       saveAIPreferences();
       
-      aiSettingsModal.hidden = true;
-      showToast('AI settings saved', 'success');
+      // Show/hide audience selector based on toggle
+      aiAudienceSelect.style.display = STATE.aiEnabled ? 'block' : 'none';
       
       // Re-generate narrative if diagram is loaded
       const mermaidSource = document.getElementById('mermaid-source')?.value || '';
@@ -1998,12 +1928,27 @@ function attachEventListeners() {
       }
     });
 
-    // Close modal on outside click
-    aiSettingsModal.addEventListener('click', (e) => {
-      if (e.target === aiSettingsModal) {
-        aiSettingsModal.hidden = true;
+    // Audience Selector
+    aiAudienceSelect?.addEventListener('change', async () => {
+      STATE.aiAudience = aiAudienceSelect.value;
+      saveAIPreferences();
+      
+      // Re-generate narrative with new audience if AI is enabled
+      if (STATE.aiEnabled) {
+        const mermaidSource = document.getElementById('mermaid-source')?.value || '';
+        if (mermaidSource.trim()) {
+          const metadata = parseMermaidMetadata(mermaidSource);
+          await generateDiagramNarrative(mermaidSource, metadata);
+        }
       }
     });
+
+    // Initialize with current state
+    aiEnabledToggle.checked = STATE.aiEnabled === true;
+    if (STATE.aiEnabled) {
+      aiAudienceSelect.style.display = 'block';
+      aiAudienceSelect.value = STATE.aiAudience;
+    }
   }
 }
 

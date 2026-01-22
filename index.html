@@ -127,53 +127,29 @@
       <section aria-labelledby="narrative-title" style="margin-top: 2rem;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
           <h2 id="narrative-title" style="margin: 0;">Diagram Narrative</h2>
-          <button id="ai-settings-btn" type="button" style="display: none; font-size: 0.85rem; padding: 0.25rem 0.75rem;" aria-label="AI narrative settings">
-            ⚙️ AI Settings
-          </button>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <!-- AI Settings: inline toggle (only shown if AI available) -->
+            <div id="ai-settings-inline" style="display: none; font-size: 0.85rem; padding: 0.5rem; border: 1px solid var(--color-border); border-radius: 4px; background: var(--color-bg);">
+              <label for="ai-enabled-inline" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; margin: 0;">
+                <input type="checkbox" id="ai-enabled-inline" style="cursor: pointer;">
+                <span style="white-space: nowrap;">🤖 Enhance with AI</span>
+              </label>
+            </div>
+            <!-- Audience selector (only shown if AI is enabled) -->
+            <select id="ai-audience-inline" style="display: none; font-size: 0.85rem; padding: 0.25rem 0.5rem; border: 1px solid var(--color-border); border-radius: 4px; background: var(--color-bg); color: var(--color-text);">
+              <option value="general">General</option>
+              <option value="technical">Technical</option>
+              <option value="nontechnical">Non-Technical</option>
+              <option value="students">Students</option>
+              <option value="executives">Executives</option>
+            </select>
+          </div>
         </div>
         <p>A text description of the diagram structure and flow:</p>
         <div id="diagram-narrative" style="background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 4px; padding: 1rem; min-height: 100px; font-size: var(--font-size-base); line-height: 1.6;">
           <p style="color: #666; font-style: italic;">Narrative will appear here after rendering a diagram...</p>
         </div>
       </section>
-
-      <!-- AI Settings Modal -->
-      <div id="ai-settings-modal" class="modal-overlay" hidden>
-        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="ai-settings-title">
-          <h2 id="ai-settings-title">AI Narrative Settings</h2>
-          
-          <div style="margin: 1rem 0;">
-            <label for="ai-enabled-toggle" style="display: flex; align-items: center; gap: 0.5rem;">
-              <input type="checkbox" id="ai-enabled-toggle" aria-describedby="ai-enabled-desc">
-              <span><strong>Enable AI Enhancement</strong></span>
-            </label>
-            <p id="ai-enabled-desc" style="margin: 0.25rem 0 0 1.75rem; font-size: 0.9em; color: #666;">
-              Use local browser AI to improve narrative descriptions
-            </p>
-          </div>
-
-          <div style="margin: 1.5rem 0;">
-            <label for="ai-audience-select" style="display: block; margin-bottom: 0.5rem;">
-              <strong>Target Audience:</strong>
-            </label>
-            <select id="ai-audience-select" style="width: 100%; padding: 0.5rem; border: 1px solid var(--color-border); border-radius: 4px; background: var(--color-bg); color: var(--color-text);">
-              <option value="general">General (mixed backgrounds)</option>
-              <option value="technical">Technical (developers & engineers)</option>
-              <option value="nontechnical">Non-Technical (business & stakeholders)</option>
-              <option value="students">Students (learning context)</option>
-              <option value="executives">Executives (high-level insights)</option>
-            </select>
-            <p style="margin: 0.5rem 0 0 0; font-size: 0.85em; color: #666;">
-              AI will adapt narrative complexity and terminology for the selected audience.
-            </p>
-          </div>
-
-          <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1.5rem;">
-            <button id="ai-settings-cancel" type="button">Cancel</button>
-            <button id="ai-settings-save" type="button" style="background: #667eea; color: white;">Save Settings</button>
-          </div>
-        </div>
-      </div>
 
     </main>
 
