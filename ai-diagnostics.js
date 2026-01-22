@@ -17,20 +17,31 @@ window.checkBrowserAIStatus = async function() {
   console.log('Location:', window.location.href);
   console.log('Is Secure Context?', window.isSecureContext);
   
+  if (navigator.userAgent.includes('Mac OS X 10_15_7')) {
+     console.log('ℹ️ Note: User Agent reports macOS 10.15.7. This is standard privacy freezing by Chrome.');
+     console.log('   Ensure your actual OS is macOS 15.1+ (Sequoia) for built-in AI support.');
+  }
+
   // Check 1: window.ai exists
   console.log('\nCheck 1: window.ai available?', 'ai' in window);
   if ('ai' in window) {
     console.log('  ✅ window.ai object found');
     console.log('  window.ai keys:', Object.keys(window.ai));
   } else {
+    // Note: User Agent is often frozen at 10_15_7 on macOS, so we can't reliably detect OS version from it.
     console.log('  ❌ window.ai NOT found');
     console.log('  POSSIBLE CAUSES:');
     console.log('  1. Flag enabled but browser NOT restarted (click "Relaunch" at bottom of flags page)');
     console.log('  2. "Optimization Guide On Device Model" flag is missing or disabled');
-    console.log('  3. Browser is too old (Need Chrome 128+ or Edge 133+)');
-    console.log('  4. Not running in a secure context (HTTPS or localhost)');
+    console.log('  3. Not logged into Chrome (Primary account often required for model download)');
+    console.log('  4. Enterprise/Organization policy blocking "GenAI" or "Optimization Guide" features');
+    console.log('  5. Browser is too old (Need Chrome 128+ or Edge 133+)');
+    console.log('  6. Not running in a secure context (HTTPS or localhost)');
+    console.log('  7. Insufficient disk space for model (~2.5GB required)');
+    console.log('\n  DEBUG TIP: If optimization-guide-internals says "disabled", go to chrome://chrome-urls');
+    console.log('  and click "enable debug pages" to see the logs.');
   }
-  
+
   // Check 2: languageModel available
   if ('ai' in window) {
     console.log('\nCheck 2: window.ai.languageModel available?', 'languageModel' in window.ai);
@@ -74,8 +85,13 @@ window.checkBrowserAIStatus = async function() {
   console.log('3. IMPORTANT: Search for "Optimization Guide On Device Model" and set to "Enabled BypassPrefRequirement"');
   console.log('4. Click "Relaunch" button at the bottom (closing window is not enough)');
   console.log('5. Go to chrome://components (or edge://components)');
-  console.log('6. Find "Optimization Guide On Device Model"');
-  console.log('7. Click "Check for update" to ensure model is downloaded (version shouldn\'t be 0.0.0.0)');
+  console.log('6. Find "Optimization Guide On Device Model" in the components list');
+  console.log('   If this component is MISSING entirely, the feature may not be available in your Chrome build/region.');
+  console.log('7. If found, click "Check for update" to ensure model is downloaded (version shouldn\'t be 0.0.0.0)');
+  console.log('\nADDITIONAL CHECKS:');
+  console.log('- Ensure you are signed into Chrome with a Google account');
+  console.log('- Check chrome://settings/languages - English (US) should be primary language');
+  console.log('- Some builds/regions may not have this feature enabled yet');
 };
 
 // Run on page load to show AI status

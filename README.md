@@ -78,15 +78,70 @@ If you're using **Chrome 128+**, the app can optionally use Chrome's built-in AI
 - Adapt technical detail level
 - **100% private—all processing happens locally in your browser**
 
-See [AI_ENHANCED_NARRATIVES.md](./AI_ENHANCED_NARRATIVES.md) for details.
+See [AI_ENHANCED_NARRATIVES.md](./AI_ENHANCED_NARRATIVES.md) for complete details.
 
-#### Diagnose Local AI Availability
+#### Setting Up Local AI in Chrome/Edge
+
+**Prerequisites:**
+- Chrome 128+ or Edge 133+ (Canary recommended for latest features)
+- Operating System:
+  - **macOS**: 15.1+ (Sequoia) required
+  - **Windows**: 11 (24H2+) required
+  - **Linux**: Support pending
+- Signed into Chrome/Edge with a Google/Microsoft account
+- ~2.5 GB free disk space for model download
+- Primary language set to English (US) in browser settings
+
+**Setup Steps:**
+
+1. **Enable Required Flags**
+   - Navigate to `chrome://flags` (or `edge://flags`)
+   - Search for **"Prompt API for Gemini Nano"** (Chrome) or **"Prompt API for Phi mini"** (Edge)
+   - Set to **"Enabled"**
+   - Search for **"Optimization Guide On Device Model"**
+   - Set to **"Enabled BypassPerfRequirement"** (important: not just "Enabled")
+   - Click **"Relaunch"** at the bottom (closing the window is not sufficient)
+
+2. **Verify Model Download**
+   - Navigate to `chrome://components` (or `edge://components`)
+   - Look for **"Optimization Guide On Device Model"** in the list
+   - If missing: Feature may not be available in your build/region (see Limitations below)
+   - If present but version is `0.0.0.0`: Click **"Check for update"**
+   - Wait for download to complete (check periodically until version shows a real number)
+
+3. **Verify in Application**
+   - Open the a11y-mermaid-studio in your browser
+   - Open DevTools → Console
+   - Run: `await checkBrowserAIStatus()`
+   - Should report "✅ window.ai object found" and "✅ Model READY TO USE"
+
+**Diagnostic Commands:**
 
 If the inline "Enhance with AI" controls do not appear:
-1. Open DevTools → Console and run `checkBrowserAIStatus()` to see whether `window.ai` exists, if the language model is ready, or if Chrome/Edge flags/OS requirements are missing.
-2. Run `A11yMermaidAI.getAvailability()` to confirm detection state, and `A11yMermaidAI.getUsage()` after triggering an enhancement to verify responses are recorded.
-3. Use `A11yMermaidAI.enable()` / `A11yMermaidAI.disable()` to toggle preferences without touching localStorage directly.
-4. Include the logged output when filing AI-related bugs so maintainers can reproduce the environment.
+1. `checkBrowserAIStatus()` — Full diagnostic report of browser AI readiness
+2. `A11yMermaidAI.getAvailability()` — Check current detection state
+3. `A11yMermaidAI.getUsage()` — View AI usage statistics
+4. `A11yMermaidAI.enable()` / `A11yMermaidAI.disable()` — Toggle feature manually
+
+**Known Limitations:**
+
+- **Regional Restrictions**: Feature may not be available in all countries/regions
+- **Build Variants**: Enterprise/Education Chrome builds may have AI features disabled
+- **Managed Profiles**: Corporate/organization policies may block AI features
+- **Account Requirements**: Must be signed in with primary Google/Microsoft account
+- **Language Restriction**: Currently English (US) only
+- **Missing Component**: If "Optimization Guide On Device Model" is completely absent from `chrome://components`, the feature is not available in your Chrome build
+
+**Troubleshooting:**
+
+If `window.ai` remains undefined after following all steps:
+1. Check `chrome://settings/languages` — Ensure English (US) is primary language
+2. Try enabling debug pages at `chrome://chrome-urls` to access `chrome://optimization-guide-internals`
+3. Completely quit and restart Chrome (not just close window)
+4. Check disk space — Model download requires ~2.5 GB
+5. Verify you're not on a managed/enterprise profile that blocks experimental features
+
+**Application Works Without AI**: All diagram rendering and accessibility features work perfectly without local AI. AI enhancement is purely optional and additive.
 
 ### Fully Implemented (8 types)
 
