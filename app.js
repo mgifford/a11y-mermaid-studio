@@ -825,8 +825,10 @@ function getBrowserAIDiagnostics() {
     },
   };
   
-  console.log('=== Browser AI Diagnostics ===');\n  console.table(diagnostics);
-  console.log('To check if your browser has AI enabled, run: getBrowserAIDiagnostics() in console');\n  return diagnostics;
+  console.log('=== Browser AI Diagnostics ===');
+  console.table(diagnostics);
+  console.log('To check if your browser has AI enabled, run: getBrowserAIDiagnostics() in console');
+  return diagnostics;
 }
 
 /**
