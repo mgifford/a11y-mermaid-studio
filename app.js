@@ -608,8 +608,26 @@ function generateDiagramNarrative(mermaidSource, metadata) {
     case 'xychart':
       narrative += generateXyChartNarrative(mermaidSource);
       break;
+    // All other detected types get generic fallback
+    case 'sequenceDiagram':
+    case 'stateDiagram':
+    case 'erDiagram':
+    case 'gitGraph':
+    case 'c4':
+    case 'quadrantChart':
+    case 'requirement':
+    case 'zenuml':
+    case 'sankey':
+    case 'block':
+    case 'packet':
+    case 'kanban':
+    case 'architecture':
+    case 'radar':
+    case 'treemap':
+      narrative += generateGenericNarrative(mermaidSource, diagramType);
+      break;
     default:
-      narrative += `<p>This is a ${diagramType} diagram.</p>`;
+      narrative += generateGenericNarrative(mermaidSource, diagramType || 'unknown');
   }
   
   narrativeDiv.innerHTML = narrative;
@@ -618,10 +636,117 @@ function generateDiagramNarrative(mermaidSource, metadata) {
 /**
  * Detect Mermaid diagram type from source
  */
-function detectDiagramType(source) {
+/**
+ * Skip YAML frontmatter in Mermaid source
+ * Frontmatter is delimited by --- at start and end
+ * Example:
+ * ---
+ * config:
+ *   look: handDrawn
+ * ---
+ * graph BT
+ */
+function skipFrontmatter(source) {
   const lines = source.trim().split('\n');
+  if (lines[0].trim() === '---') {
+    // Find the closing ---
+    for (let i = 1; i < lines.length; i++) {
+      if (lines[i].trim() === '---') {
+        // Return everything after the closing ---
+        return lines.slice(i + 1).join('\n');
+      }
+    }
+  }
+  return source;
+}
+
+/**
+ * Generate a basic fallback narrative for any diagram type
+ * Provides structural information when no specific generator exists
+ */
+function generateGenericNarrative(source, diagramType) {
+  let narrative = `<p><strong>Diagram Type:</strong> ${escapeHtml(diagramType)}</p>\n`;
+  
+  // Skip frontmatter and comments
+  const sourceWithoutFrontmatter = skipFrontmatter(source);
+  const lines = sourceWithoutFrontmatter.split('\n')
+    .filter(line => !line.trim().startsWith('%%'))
+    .filter(line => line.trim().length > 0);
+  
+  // Count structural elements
+  const stats = {
+    totalLines: lines.length - 1, // Exclude declaration line
+    nodes: 0,
+    connections: 0,
+    sections: 0,
+    labels: 0
+  };
+  
+  lines.slice(1).forEach(line => {
+    const trimmed = line.trim();
+    
+    // Count node-like patterns (ID followed by bracket/paren)
+    if (/^[A-Za-z0-9_]+[\[\(\{]/.test(trimmed)) {
+      stats.nodes++;
+    }
+    
+    // Count connections (arrows, dashes)
+    if (/-->|---|-\.-|==>|->|\.>|\|/.test(trimmed)) {
+      stats.connections++;
+    }
+    
+    // Count sections
+    if (/^section\s+/i.test(trimmed) || /^subgraph\s+/i.test(trimmed)) {
+      stats.sections++;
+    }
+    
+    // Count quoted labels
+    const quotes = trimmed.match(/["'][^"']+["']/g);
+    if (quotes) {
+      stats.labels += quotes.length;
+    }
+  });
+  
+  narrative += '<p><strong>Structure:</strong></p>\n<ul>\n';
+  
+  if (stats.nodes > 0) {
+    narrative += `<li>${stats.nodes} element${stats.nodes !== 1 ? 's' : ''}</li>\n`;
+  }
+  
+  if (stats.connections > 0) {
+    narrative += `<li>${stats.connections} connection${stats.connections !== 1 ? 's' : ''}</li>\n`;
+  }
+  
+  if (stats.sections > 0) {
+    narrative += `<li>${stats.sections} section${stats.sections !== 1 ? 's' : ''}</li>\n`;
+  }
+  
+  if (stats.labels > 0) {
+    narrative += `<li>${stats.labels} labeled item${stats.labels !== 1 ? 's' : ''}</li>\n`;
+  }
+  
+  if (stats.totalLines > 0) {
+    narrative += `<li>${stats.totalLines} line${stats.totalLines !== 1 ? 's' : ''} of content</li>\n`;
+  }
+  
+  narrative += '</ul>\n';
+  
+  // Add helpful note about narrative generation
+  narrative += `<p style="color: #666; font-size: 0.9em; margin-top: 1rem;">`;
+  narrative += `<em>Note: This diagram type does not yet have a detailed narrative generator. `;
+  narrative += `The SVG will still be rendered with accessibility attributes (title, description, role).</em>`;
+  narrative += `</p>`;
+  
+  return narrative;
+}
+
+function detectDiagramType(source) {
+  // Skip YAML frontmatter if present
+  const sourceWithoutFrontmatter = skipFrontmatter(source);
+  const lines = sourceWithoutFrontmatter.trim().split('\n');
   const firstLine = lines[0].trim();
   
+  // Check for all known diagram types
   if (firstLine.startsWith('flowchart') || firstLine.startsWith('graph')) {
     return 'flowchart';
   } else if (firstLine.startsWith('pie')) {
@@ -644,6 +769,30 @@ function detectDiagramType(source) {
     return 'erDiagram';
   } else if (firstLine.startsWith('stateDiagram')) {
     return 'stateDiagram';
+  } else if (firstLine.startsWith('gitGraph')) {
+    return 'gitGraph';
+  } else if (firstLine.startsWith('C4Context') || firstLine.startsWith('C4Container') || firstLine.startsWith('C4Component')) {
+    return 'c4';
+  } else if (firstLine.startsWith('quadrantChart')) {
+    return 'quadrantChart';
+  } else if (firstLine.startsWith('requirement')) {
+    return 'requirement';
+  } else if (firstLine.startsWith('zenuml')) {
+    return 'zenuml';
+  } else if (firstLine.startsWith('sankey')) {
+    return 'sankey';
+  } else if (firstLine.startsWith('block')) {
+    return 'block';
+  } else if (firstLine.startsWith('packet')) {
+    return 'packet';
+  } else if (firstLine.startsWith('kanban')) {
+    return 'kanban';
+  } else if (firstLine.startsWith('architecture')) {
+    return 'architecture';
+  } else if (firstLine.startsWith('radar')) {
+    return 'radar';
+  } else if (firstLine.startsWith('treemap')) {
+    return 'treemap';
   }
   
   return 'unknown';
@@ -655,33 +804,62 @@ function detectDiagramType(source) {
 function generateFlowchartNarrative(source) {
   let narrative = '<p><strong>Flow:</strong></p>\n<ol>\n';
   
-  const lines = source.split('\n')
+  // Skip YAML frontmatter if present
+  const sourceWithoutFrontmatter = skipFrontmatter(source);
+  
+  const lines = sourceWithoutFrontmatter.split('\n')
     .filter(line => !line.trim().startsWith('%%'))
+    .filter(line => !line.trim().startsWith('subgraph'))
+    .filter(line => !line.trim().startsWith('end'))
+    .filter(line => !line.trim().startsWith('direction'))
+    .filter(line => !line.trim().startsWith('class '))
+    .filter(line => !line.trim().startsWith('classDef'))
     .filter(line => line.trim().length > 0)
-    .slice(1); // Skip first line (flowchart TD)
+    .slice(1); // Skip first line (flowchart TD or graph BT)
   
   const nodes = new Map();
   const edges = [];
   
-  // Parse nodes and edges
+  // Parse nodes and edges - handle all Mermaid node shapes
   lines.forEach(line => {
     line = line.trim();
     
-    // Node definition: A[Text] or A{Question?}
-    const nodeMatch = line.match(/^([A-Z0-9]+)\[([^\]]+)\]|^([A-Z0-9]+)\{([^}]+)\}/);
-    if (nodeMatch) {
-      const id = nodeMatch[1] || nodeMatch[3];
-      const text = nodeMatch[2] || nodeMatch[4];
-      nodes.set(id, { text, isQuestion: !!nodeMatch[4] });
+    // Node definitions - supports multiple shapes:
+    // A[Rectangle], A(Round), A((Circle)), A{Diamond}, A{{Hexagon}}, A[(Database)], A([Stadium]), etc.
+    const nodePatterns = [
+      /^([A-Za-z0-9_]+)\[\[([^\]]+)\]\]/,      // Double square: [[text]]
+      /^([A-Za-z0-9_]+)\[([^\]]+)\]/,          // Square: [text]
+      /^([A-Za-z0-9_]+)\(\(([^)]+)\)\)/,       // Circle: ((text))
+      /^([A-Za-z0-9_]+)\(\[([^\]]+)\]\)/,      // Stadium: ([text])
+      /^([A-Za-z0-9_]+)\({2}([^}]+)\}{2}/,     // Hexagon: {{text}}
+      /^([A-Za-z0-9_]+)\{([^}]+)\}/,           // Diamond: {text}
+      /^([A-Za-z0-9_]+)\(([^)]+)\)/,           // Round: (text)
+      /^([A-Za-z0-9_]+)\[\(([^\]]+)\)\]/,      // Asymmetric: [(text)]
+      /^([A-Za-z0-9_]+)\[\|([^\]]+)\|\]/,      // Subroutine: [|text|]
+      /^([A-Za-z0-9_]+)\[\(([^\)]+)\)\]/,      // Left round: [(text)
+      /^([A-Za-z0-9_]+)>"([^"]+)"\]/,          // Flag: >"text"]
+      /^([A-Za-z0-9_]+)\[\/([^\/]+)\/\]/,      // Parallelogram: [/text/]
+    ];
+    
+    for (const pattern of nodePatterns) {
+      const nodeMatch = line.match(pattern);
+      if (nodeMatch) {
+        const id = nodeMatch[1];
+        const text = nodeMatch[2];
+        // Diamond shapes are typically questions/decisions
+        const isQuestion = line.includes('{') && line.includes('}');
+        nodes.set(id, { text, isQuestion });
+        return; // Found a match, move to next line
+      }
     }
     
-    // Edge with label: A -->|Yes| B
-    const edgeLabelMatch = line.match(/([A-Z0-9]+)\s*-->\s*\|([^|]+)\|\s*([A-Z0-9]+)/);
+    // Edge with label: A -->|Yes| B or A ---|Label| B or A ---->|Label| B
+    const edgeLabelMatch = line.match(/([A-Za-z0-9_]+)\s*-+>?\s*\|([^|]+)\|\s*([A-Za-z0-9_]+)/);
     if (edgeLabelMatch) {
       edges.push({ from: edgeLabelMatch[1], to: edgeLabelMatch[3], label: edgeLabelMatch[2] });
     } else {
-      // Edge without label: A --> B
-      const edgeMatch = line.match(/([A-Z0-9]+)\s*-->\s*([A-Z0-9]+)/);
+      // Edge without label: A --> B or A ---> B or A ----> B
+      const edgeMatch = line.match(/([A-Za-z0-9_]+)\s*-+>?\s+([A-Za-z0-9_]+)/);
       if (edgeMatch) {
         edges.push({ from: edgeMatch[1], to: edgeMatch[2], label: null });
       }
@@ -740,7 +918,10 @@ function generateFlowchartNarrative(source) {
 function generatePieNarrative(source) {
   let narrative = '<p><strong>Data breakdown:</strong></p>\n<ul>\n';
   
-  const lines = source.split('\n')
+  // Skip YAML frontmatter if present
+  const sourceWithoutFrontmatter = skipFrontmatter(source);
+  
+  const lines = sourceWithoutFrontmatter.split('\n')
     .filter(line => !line.trim().startsWith('%%'))
     .filter(line => line.trim().length > 0)
     .slice(1); // Skip title line
@@ -780,7 +961,10 @@ function generatePieNarrative(source) {
 function generateClassDiagramNarrative(source) {
   let narrative = '<p><strong>Class structure:</strong></p>\n<ul>\n';
   
-  const lines = source.split('\n')
+  // Skip YAML frontmatter if present
+  const sourceWithoutFrontmatter = skipFrontmatter(source);
+  
+  const lines = sourceWithoutFrontmatter.split('\n')
     .filter(line => !line.trim().startsWith('%%'))
     .filter(line => line.trim().length > 0)
     .slice(1);
@@ -853,7 +1037,10 @@ function generateClassDiagramNarrative(source) {
 function generateGanttNarrative(source) {
   let narrative = '<p><strong>Project Timeline:</strong></p>\n';
   
-  const lines = source.split('\n')
+  // Skip YAML frontmatter if present
+  const sourceWithoutFrontmatter = skipFrontmatter(source);
+  
+  const lines = sourceWithoutFrontmatter.split('\n')
     .filter(line => !line.trim().startsWith('%%'))
     .filter(line => line.trim().length > 0);
   
@@ -935,7 +1122,10 @@ function generateGanttNarrative(source) {
 function generateUserJourneyNarrative(source) {
   let narrative = '<p><strong>User Journey:</strong></p>\n';
   
-  const lines = source.split('\n')
+  // Skip YAML frontmatter if present
+  const sourceWithoutFrontmatter = skipFrontmatter(source);
+  
+  const lines = sourceWithoutFrontmatter.split('\n')
     .filter(line => !line.trim().startsWith('%%'))
     .filter(line => line.trim().length > 0);
   
@@ -1011,7 +1201,10 @@ function generateUserJourneyNarrative(source) {
 function generateMindmapNarrative(source) {
   let narrative = '<p><strong>Mind Map Structure:</strong></p>\n';
   
-  const lines = source.split('\n')
+  // Skip YAML frontmatter if present
+  const sourceWithoutFrontmatter = skipFrontmatter(source);
+  
+  const lines = sourceWithoutFrontmatter.split('\n')
     .filter(line => !line.trim().startsWith('%%'))
     .filter(line => line.trim().length > 0)
     .slice(1); // Skip "mindmap" declaration
@@ -1102,7 +1295,10 @@ function generateMindmapNarrative(source) {
 function generateTimelineNarrative(source) {
   let narrative = '<p><strong>Timeline Events:</strong></p>\n';
   
-  const lines = source.split('\n')
+  // Skip YAML frontmatter if present
+  const sourceWithoutFrontmatter = skipFrontmatter(source);
+  
+  const lines = sourceWithoutFrontmatter.split('\n')
     .filter(line => !line.trim().startsWith('%%') && !line.trim().startsWith('--'))
     .filter(line => line.trim().length > 0)
     .slice(1); // Skip "timeline" declaration
@@ -1164,7 +1360,10 @@ function generateTimelineNarrative(source) {
 function generateXyChartNarrative(source) {
   let narrative = '<p><strong>Chart Data:</strong></p>\n';
   
-  const lines = source.split('\n')
+  // Skip YAML frontmatter if present
+  const sourceWithoutFrontmatter = skipFrontmatter(source);
+  
+  const lines = sourceWithoutFrontmatter.split('\n')
     .filter(line => !line.trim().startsWith('%%'))
     .filter(line => line.trim().length > 0);
   

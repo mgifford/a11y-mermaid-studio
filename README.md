@@ -67,7 +67,9 @@ These are injected into the SVG as `<title>` and `<desc>` elements, which are es
 
 ## Narrative Generation Support
 
-The tool automatically generates accessible prose narratives for multiple diagram types:
+The tool automatically generates accessible prose narratives for diagram types:
+
+### Fully Implemented (8 types)
 
 | Type | Narrative | Example Output |
 |------|-----------|-----------------|
@@ -76,10 +78,23 @@ The tool automatically generates accessible prose narratives for multiple diagra
 | **User Journey** | Steps with satisfaction tracking | "User journey: 5 steps from Awareness → Purchase with overall satisfaction: 😊" |
 | **Pie Chart** | Data breakdown with percentages | "Data distribution: Item A (50%), Item B (30%), Item C (20%)" |
 | **Class Diagram** | Classes, methods, and relationships | "System classes: Customer, Order, Product with inheritance and associations" |
+| **Mind Map** | Hierarchical structure | "Central concept with 3 main branches and 12 sub-topics" |
+| **Timeline** | Chronological events | "Timeline spanning 2020-2025 with 8 major milestones" |
+| **XY Chart** | Data series and axes | "Chart showing 3 data series across 10 data points" |
 
-**More types ready for implementation:** Sequence, State, Entity Relationship, Git Graph, C4 Architecture
+### Generic Fallback (15 types)
 
-See [MERMAID_DIAGRAM_TYPES.md](./MERMAID_DIAGRAM_TYPES.md) for complete reference of all 23 supported diagram types, their syntax, and narrative potential.
+All other MermaidJS diagram types receive a **structural description** including:
+- Element count (nodes/entities/participants)
+- Connection count (edges/relationships/arrows)
+- Section count (subgraphs/phases)
+- Total content lines
+
+**Types with generic fallback**: Sequence, State, ER Diagram, Git Graph, C4, Quadrant, Requirement, ZenUML, Sankey, Block, Packet, Kanban, Architecture, Radar, Treemap
+
+**SVG Accessibility**: All 23 diagram types include proper semantic structure (`role="img"`, `<title>`, `<desc>`, `aria-labelledby`) regardless of narrative depth.
+
+See [MERMAID_DIAGRAM_TYPES.md](./MERMAID_DIAGRAM_TYPES.md) for complete reference and [GENERIC_NARRATIVE_FALLBACK.md](./GENERIC_NARRATIVE_FALLBACK.md) for fallback implementation details.
 
 ## Architecture
 
