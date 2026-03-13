@@ -1,0 +1,21 @@
+flowchart TD
+  classDef role fill:#d4edda,stroke:#28a745,color:#155724
+  classDef support fill:#cce5ff,stroke:#0066cc,color:#004085
+
+  0[Product Team]
+  1[Design Disciplines]
+  2[Research and Strategy]
+
+  0 --> 1
+  0 --> 2
+
+  1_1["User Experience (UX) Design"]:::role
+  1_2[Visual Design]:::role
+  1_3[Interaction Design]:::role
+
+  1 --> 1_1
+  1 --> 1_2
+  1 --> 1_3
+
+%%accTitle UX Design Roles Flowchart
+%%accDescr A flowchart showing product team design disciplines. The Product Team branches into Design Disciplines and Research and Strategy. Design Disciplines includes User Experience Design, Visual Design, and Interaction Design, each styled as a design role.

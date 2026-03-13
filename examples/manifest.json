@@ -12,8 +12,9 @@
     { "id": "journey-support", "title": "User Journey (Support)", "file": "journey-support.mmd", "type": "journey" },
     { "id": "gantt-basic", "title": "Gantt Chart", "file": "gantt-basic.mmd", "type": "gantt" },
     { "id": "gantt-project", "title": "Gantt (Software Project)", "file": "gantt-project.mmd", "type": "gantt" },
-    { "id": "pie-basic", "title": "Pie Chart", "file": "pie-basic.mmd", "type": "pie" }
+    { "id": "pie-basic", "title": "Pie Chart", "file": "pie-basic.mmd", "type": "pie" },
+    { "id": "flowchart-ux-roles", "title": "Flowchart (UX Design Roles)", "file": "flowchart-ux-roles.mmd", "type": "flowchart" }
   ],
-  "lastUpdated": "2026-01-16",
-  "version": "1.1"
+  "lastUpdated": "2026-03-13",
+  "version": "1.2"
 }
