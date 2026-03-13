@@ -421,6 +421,16 @@ function lintMermaidSource(source, diagramType) {
   }
   if (trimmedType === 'flowchart' || trimmedType === 'graph') {
     if (!/-->/i.test(source)) warnings.push({ message: 'Flowchart: add arrows between nodes' });
+    // Detect unquoted node labels containing parentheses — these cause Mermaid parse errors.
+    // e.g. A[Label (abbr)] fails; fix with A["Label (abbr)"]
+    // Use a negative lookahead so already-quoted labels ["..."] and ['...'] are ignored.
+    const unquotedParenLabel = /\[(?!["']).*?\(.*?\).*?\]/;
+    if (unquotedParenLabel.test(source)) {
+      warnings.push({
+        message: 'Flowchart: node label contains parentheses without quotes. Wrap the label text in double quotes to avoid parse errors, e.g. ["Label (abbreviation)"]',
+        line: findLineContaining(unquotedParenLabel), // closure uses `lines` from lintMermaidSource
+      });
+    }
   }
   if (trimmedType === 'gantt') {
     if (!/dateFormat/i.test(source)) warnings.push({ message: 'Gantt: set dateFormat', line: findLineContaining(/dateFormat/i) });
