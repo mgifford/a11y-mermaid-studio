@@ -7,6 +7,11 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
+import { readFileSync } from 'fs';
+import path from 'path';
+
+const appJs = readFileSync(path.resolve(process.cwd(), 'app.js'), 'utf8');
+const stylesCSS = readFileSync(path.resolve(process.cwd(), 'styles.css'), 'utf8');
 
 describe('Accessibility Tests', () => {
   beforeEach(() => {
@@ -64,5 +69,55 @@ describe('Accessibility Tests', () => {
   it('should hide decorative elements from a11y tree', () => {
     // Requirement: aria-hidden or role="presentation" for decorative shapes
     expect(true).toBe(true);
+  });
+
+  // ── Mindmap semantics (role="list"/"listitem" instead of tree/treeitem) ──
+
+  it('should have applyMindmapSemantics function', () => {
+    // Regression: mindmap nodes must receive accessible list semantics
+    expect(appJs).toContain('function applyMindmapSemantics(svg)');
+  });
+
+  it('applyMindmapSemantics should use role="list" not role="tree"', () => {
+    // Requirement: role="tree"/"treeitem" requires complex keyboard navigation
+    // that static SVG cannot provide. role="list"/"listitem" is the safe choice.
+    expect(appJs).toContain("'role', 'list'");
+    expect(appJs).toContain("'role', 'listitem'");
+    // Must NOT introduce role="tree" or role="treeitem"
+    expect(appJs).not.toContain("'role', 'tree'");
+    expect(appJs).not.toContain("'role', 'treeitem'");
+  });
+
+  it('applyMindmapSemantics should add per-node <title> to fix single-tooltip issue', () => {
+    // Regression: without per-node titles the SVG root title appears as a
+    // tooltip on every shape, giving no per-node context.
+    expect(appJs).toContain("querySelectorAll('g.mindmap-node')");
+    expect(appJs).toContain('title.textContent = nodeText');
+    expect(appJs).toContain("node.insertBefore(title, node.firstChild)");
+  });
+
+  it('applyMindmapSemantics should be called from applyAccessibilityTransformations', () => {
+    // Regression: the mindmap transform must be wired into the main pipeline
+    expect(appJs).toContain('applyMindmapSemantics(svg)');
+  });
+
+  it('applyMindmapSemantics should hide decorative shapes with aria-hidden', () => {
+    // Requirement: background rect/circle shapes inside mindmap nodes are decorative
+    expect(appJs).toContain("querySelectorAll('rect, circle, ellipse, polygon, path')");
+    expect(appJs).toContain("shape.setAttribute('aria-hidden', 'true')");
+  });
+
+  // ── CSS keyboard-focus parity ──
+
+  it('mode-toggle label should respond to :focus-within as well as :hover', () => {
+    // Regression: keyboard users tabbing into a radio button inside a label
+    // must receive the same highlight that mouse users see on :hover.
+    expect(stylesCSS).toContain('.mode-toggle label:focus-within');
+  });
+
+  it('toast-close button should respond to :focus as well as :hover', () => {
+    // Regression: keyboard users must be able to see the toast-close button is
+    // focusable, matching the reduced-opacity effect shown on :hover.
+    expect(stylesCSS).toContain('.toast-close:focus');
   });
 });
