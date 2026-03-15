@@ -302,7 +302,8 @@ button:disabled {
   font-weight: normal;
 }
 
-.mode-toggle label:hover {
+.mode-toggle label:hover,
+.mode-toggle label:focus-within {
   background-color: rgba(0, 102, 204, 0.1);
 }
 
@@ -593,7 +594,8 @@ footer {
   cursor: pointer;
 }
 
-.toast-close:hover { opacity: 0.75; }
+.toast-close:hover,
+.toast-close:focus { opacity: 0.75; }
 
 /* Modal styles */
 .modal-overlay {

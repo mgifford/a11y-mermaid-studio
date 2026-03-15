@@ -293,6 +293,9 @@ function applyAccessibilityTransformations(svgString, metadata) {
   
   // Apply flowchart-specific transformations (Léonie Watson / Ashley Sheridan pattern)
   applyFlowchartSemantics(svg);
+
+  // Apply mindmap-specific transformations (list semantics instead of tree/treeitem)
+  applyMindmapSemantics(svg);
   
   // Preserve xmlns namespace for standalone SVG usage
   svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
@@ -583,6 +586,80 @@ function applyFlowchartSemantics(svg) {
   // Note: We're not wrapping nodes in the list group to preserve Mermaid's layout
   // Instead, we're adding role="listitem" directly to existing node groups
   // This is a pragmatic approach that preserves visual layout while adding semantics
+}
+
+/**
+ * Apply mindmap-specific accessibility semantics.
+ *
+ * We deliberately use role="list" / role="listitem" rather than role="tree" /
+ * role="treeitem".  While "tree" is semantically closer to a mind map's hierarchy,
+ * it mandates complex keyboard navigation (arrow keys, expand/collapse) that the
+ * static Mermaid SVG does not implement.  Using "list" provides accessible labels
+ * without creating an unusable interactive pattern.
+ *
+ * Reference: https://www.w3.org/WAI/ARIA/apg/patterns/treeview/
+ *
+ * This function also adds a per-node <title> to every g.mindmap-node so that
+ * browsers display a node-specific tooltip on hover rather than repeating the
+ * diagram's root <title> for every shape.
+ */
+function applyMindmapSemantics(svg) {
+  // Detect mindmap by checking for Mermaid's mindmap node class
+  const mindmapNodes = svg.querySelectorAll('g.mindmap-node');
+  if (mindmapNodes.length === 0) {
+    console.log('[Mindmap] Not a mindmap diagram, skipping mindmap semantics');
+    return;
+  }
+
+  console.log('[Mindmap] Detected mindmap, applying semantic transformations');
+  console.log(`[Mindmap] Found ${mindmapNodes.length} nodes`);
+
+  // Identify the mindmap container: walk up from the first node until we reach
+  // a direct child of the SVG root.  This is more reliable than blindly picking
+  // the first <g> in the document, which could be an unrelated defs wrapper.
+  let listContainer = mindmapNodes[0].parentElement;
+  while (listContainer && listContainer.parentElement !== svg) {
+    listContainer = listContainer.parentElement;
+  }
+  if (listContainer) {
+    listContainer.setAttribute('role', 'list');
+    listContainer.setAttribute('aria-label', 'Mind map nodes');
+  }
+
+  // Process each mindmap node
+  mindmapNodes.forEach((node, index) => {
+    node.setAttribute('role', 'listitem');
+
+    const nodeText = extractNodeLabel(node);
+    console.log(`[Mindmap] Node ${index + 1}: "${nodeText}"`);
+
+    // Replace any existing <title> on the node with one containing the extracted
+    // label.  This fixes the "single root title shown for every shape" tooltip
+    // issue: once a node has its own <title>, browsers display that instead of
+    // the SVG root title when hovering over the node.
+    const existingTitle = node.querySelector('title');
+    if (existingTitle) existingTitle.remove();
+
+    if (nodeText) {
+      const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+      title.textContent = nodeText;
+      node.insertBefore(title, node.firstChild);
+    }
+
+    // Hide decorative background shapes from the accessibility tree
+    const shapes = node.querySelectorAll('rect, circle, ellipse, polygon, path');
+    shapes.forEach(shape => shape.setAttribute('aria-hidden', 'true'));
+  });
+
+  // Hide connector paths that sit outside any g.mindmap-node — these are the
+  // decorative lines drawn between nodes.  Mermaid mindmaps do not use the
+  // flowchart edgePath / edgeLabel classes, so we target paths/lines that are
+  // not descendants of a mindmap node.
+  svg.querySelectorAll('path, line').forEach(el => {
+    if (!el.closest('g.mindmap-node')) {
+      el.setAttribute('aria-hidden', 'true');
+    }
+  });
 }
 
 /**
