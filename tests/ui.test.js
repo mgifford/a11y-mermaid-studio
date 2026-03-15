@@ -86,6 +86,15 @@ describe('UI Tests', () => {
     expect(source.tagName).toBe('TEXTAREA');
   });
 
+  it('should include Sa11y accessibility checker CSS and script', () => {
+    // Sa11y must be loaded so content authors can verify accessibility of rendered diagrams.
+    // Ref: https://sa11y.netlify.app/
+    const sa11yCssLink = doc.querySelector('link[href*="sa11y.min.css"]');
+    const sa11yScript = doc.querySelector('script[src="sa11y-init.js"]');
+    expect(sa11yCssLink).toBeTruthy();
+    expect(sa11yScript).toBeTruthy();
+  });
+
   it('should have both light and dark preview panes without role="img" on the wrapper', () => {
     // The wrapper divs must NOT have role="img" — that would make the SVG content
     // inside opaque to screen readers. Accessibility is provided by the SVG itself
