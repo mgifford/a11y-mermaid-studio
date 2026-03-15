@@ -86,12 +86,15 @@ describe('UI Tests', () => {
     expect(source.tagName).toBe('TEXTAREA');
   });
 
-  it('should have both light and dark accessible preview panes with role="img"', () => {
+  it('should have both light and dark preview panes without role="img" on the wrapper', () => {
+    // The wrapper divs must NOT have role="img" — that would make the SVG content
+    // inside opaque to screen readers. Accessibility is provided by the SVG itself
+    // (Pattern 11: role="img", <title>, <desc>, aria-labelledby on the <svg> element).
     const light = doc.getElementById('preview-light');
     const dark = doc.getElementById('preview-dark');
     expect(light).toBeTruthy();
     expect(dark).toBeTruthy();
-    expect(light.getAttribute('role')).toBe('img');
-    expect(dark.getAttribute('role')).toBe('img');
+    expect(light.getAttribute('role')).toBeNull();
+    expect(dark.getAttribute('role')).toBeNull();
   });
 });
