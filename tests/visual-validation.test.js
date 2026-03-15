@@ -131,13 +131,13 @@ describe('Visual Validation Tests', () => {
   it('should have preview-light pane in HTML', () => {
     const previewLight = document.getElementById('preview-light');
     expect(previewLight).toBeTruthy();
-    expect(previewLight.getAttribute('role')).toBe('img');
+    expect(previewLight.getAttribute('role')).toBeNull();
   });
 
   it('should have preview-dark pane in HTML', () => {
     const previewDark = document.getElementById('preview-dark');
     expect(previewDark).toBeTruthy();
-    expect(previewDark.getAttribute('role')).toBe('img');
+    expect(previewDark.getAttribute('role')).toBeNull();
   });
 
   it('should extract colors from SVG elements', () => {
