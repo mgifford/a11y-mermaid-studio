@@ -196,6 +196,7 @@ npm run pa11y  # Additional accessibility validation
 
 **Key Reference Documents:**
 
+- [ACCESSIBILITY.md](./ACCESSIBILITY.md) — Project accessibility commitment, AI agent instructions, conformance statement, and known gaps
 - [MERMAID_DIAGRAM_TYPES.md](./MERMAID_DIAGRAM_TYPES.md) — Complete reference for all 23 Mermaid diagram types, narrative generation strategies, and implementation guidance
 - [MERMAID_DIAGRAM_TYPES.json](./MERMAID_DIAGRAM_TYPES.json) — Machine-readable reference with syntax details, narrative readiness assessment, and organization by category/complexity
 - [AGENTS.md](./AGENTS.md) — Detailed agent instructions, development guidelines, and normative references
@@ -204,9 +205,9 @@ npm run pa11y  # Additional accessibility validation
 - [Léonie Watson's "Accessible SVG flowcharts"](https://tink.uk/accessible-svg-flowcharts/)
 - [Carie Fisher's "Accessible SVGs: Perfect Patterns For Screen Reader Users"](https://cariefisher.com/a11y-svg-updated/)
 
-**Project Specifications** (to be created):
-- `MERMAID_ACCESSIBILITY_BEST_PRACTICES.md`
-- `MERMAID_TRANSFORMATION_BEST_PRACTICES.md`
+**Project Specifications:**
+- [MERMAID_ACCESSIBILITY_BEST_PRACTICES.md](./MERMAID_ACCESSIBILITY_BEST_PRACTICES.md)
+- [MERMAID_TRANSFORMATION_BEST_PRACTICES.md](./MERMAID_TRANSFORMATION_BEST_PRACTICES.md)
 
 ## Sample Diagrams
 
