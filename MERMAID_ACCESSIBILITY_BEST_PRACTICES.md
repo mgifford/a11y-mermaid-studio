@@ -8,6 +8,12 @@ Copyright (c) 2026 Mike Gifford
 Based on:
 - Léonie Watson's [Accessible SVG flowcharts](https://tink.uk/accessible-svg-flowcharts/)
 - Carie Fisher's [Accessible SVGs: Perfect Patterns For Screen Reader Users](https://cariefisher.com/a11y-svg-updated/)
+- Deque's [Creating Accessible SVGs](https://www.deque.com/blog/creating-accessible-svgs/)
+- Smashing Magazine's [Accessible SVGs: Inclusiveness Beyond Patterns](https://www.smashingmagazine.com/2020/03/accessible-svgs-inclusiveness-beyond-patterns/)
+- Deque University's [svg-img-alt axe rule](https://dequeuniversity.com/rules/axe/4.11/svg-img-alt)
+- Accesify's [SVG Accessibility: Icons, Graphics & Screen Reader Friendly](https://www.accesify.io/blog/svg-accessibility-icons-graphics-screen-reader-friendly/)
+- iamvector's [9 Ways to Enhance Accessibility in SVG Icon Design](https://iamvector.com/blog/9-ways-to-enhance-accessibility-in-svg-icon-design/)
+- dev.to/accessibly_speaking's [How to Make SVGs Accessible: A Short Guide](https://dev.to/accessibly_speaking/how-to-make-svgs-accessible-a-short-guide-1ope)
 - W3C ARIA Authoring Practices Guide
 - WCAG 2.2 Level AA
 
@@ -255,7 +261,107 @@ L = 0.2126 * R + 0.7152 * G + 0.0722 * B
 
 ---
 
-## 10. Known Limitations
+## 10. SVG Usage-Context Patterns
+
+The accessibility approach depends on **how the SVG is embedded in the page** (Deque). For A11y Mermaid Studio the default target is inline SVG (the tool renders directly into the DOM), but the exported file may be embedded in any of the following ways:
+
+| Usage Context | Accessibility Mechanism |
+|---|---|
+| **Inline SVG** (rendered by this tool) | `role="img"` + `<title id>` + `<desc id>` + `aria-labelledby` (Pattern 11) |
+| **`<img src="diagram.svg">`** | `alt` attribute on the `<img>` element; `<title>` inside SVG is ignored by most browsers |
+| **`<object data="diagram.svg">`** | Internal `<title>` + `<desc>` are exposed; add a fallback text inside `<object>` |
+| **CSS `background-image`** | ⚠️ Cannot be made accessible — always prefer `<img>` or inline for non-decorative diagrams |
+
+**Key rule (Deque University `svg-img-alt`):** Any `<svg>` that carries `role="img"` _must_ have an accessible text alternative exposed to assistive technologies. Acceptable mechanisms (in preference order):
+
+1. A child `<title>` element whose `id` is referenced by `aria-labelledby` — satisfies the axe `svg-img-alt` rule.
+2. An `aria-label` attribute directly on `<svg>` — acceptable but less consistent across screen readers.
+3. An `aria-labelledby` pointing to visible text elsewhere on the page.
+
+Decorative SVGs (purely visual chrome, icons that are redundant with adjacent text) must be hidden:
+```html
+<!-- Decorative icon next to a text label -->
+<svg aria-hidden="true" focusable="false" ...>...</svg>
+```
+
+> **Note:** The `focusable="false"` attribute is required in IE/Edge legacy builds to prevent SVGs from receiving focus. It remains harmless in modern browsers.
+
+---
+
+## 11. Animated SVG and Motion Accessibility
+
+Per [Smashing Magazine (Accessible SVGs)](https://www.smashingmagazine.com/2020/03/accessible-svgs-inclusiveness-beyond-patterns/), animated diagrams must respect users' motion preferences:
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  svg * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+```
+
+**Rules:**
+- Any SVG animation (CSS, SMIL, or JS-driven) must pause or disappear when `prefers-reduced-motion: reduce` is active.
+- Auto-playing animations that loop must provide a user control to pause/stop.
+- Flashing/strobing content that exceeds 3 Hz must be removed or suppressible (WCAG 2.3.1 – Level A).
+
+---
+
+## 12. SVG `<use>` Element (Icon Sprites)
+
+When SVG icons are delivered via `<use xlink:href="#icon-id">` (sprite pattern), the accessibility information in the `<symbol>` definition **may not be reliably inherited** by all screen readers.
+
+**Safe pattern for informative icon sprites:**
+```html
+<!-- The <title> inside <symbol> is not reliably announced -->
+<svg role="img" aria-labelledby="icon-label-123" focusable="false">
+  <title id="icon-label-123">Download</title>
+  <use href="#icon-download"/>
+</svg>
+```
+
+**Safe pattern for decorative icon sprites:**
+```html
+<svg aria-hidden="true" focusable="false">
+  <use href="#icon-chevron"/>
+</svg>
+```
+
+> This pattern is described in detail in [accesify.io's SVG accessibility guide](https://www.accesify.io/blog/svg-accessibility-icons-graphics-screen-reader-friendly/) and [iamvector's 9 ways](https://iamvector.com/blog/9-ways-to-enhance-accessibility-in-svg-icon-design/).
+
+---
+
+## 13. Long Descriptions for Complex Diagrams
+
+For very complex diagrams where `<desc>` alone is insufficient, WCAG 1.1.1 allows supplementary long descriptions. Two approaches:
+
+**`aria-details` pointing to a sibling element (preferred, WCAG 2.2+):**
+```html
+<svg role="img" aria-labelledby="title-id desc-id" aria-details="long-desc-id">
+  <title id="title-id">System Architecture</title>
+  <desc id="desc-id">Brief summary of the architecture diagram.</desc>
+</svg>
+<div id="long-desc-id">
+  <h3>Full Description</h3>
+  <p>The system consists of three tiers: …</p>
+</div>
+```
+
+**Hidden but announced fallback (for standalone SVG files):**
+```html
+<desc id="desc-id">
+  Brief summary. Full description: The system has three tiers.
+  The presentation tier (React) communicates with the API tier (Node.js),
+  which in turn queries the data tier (PostgreSQL).
+</desc>
+```
+
+Use the `aria-details` approach in the web app; fall back to a lengthier `<desc>` for exported standalone SVGs.
+
+---
+
+## 14. Known Limitations
 
 Document these limitations in diagram metadata or UI:
 
@@ -271,6 +377,12 @@ Document these limitations in diagram metadata or UI:
 
 - **Léonie Watson's Accessible SVG Flowcharts**: https://tink.uk/accessible-svg-flowcharts/
 - **Carie Fisher's Pattern Testing**: https://cariefisher.com/a11y-svg-updated/
+- **Deque – Creating Accessible SVGs**: https://www.deque.com/blog/creating-accessible-svgs/
+- **Smashing Magazine – Accessible SVGs: Inclusiveness Beyond Patterns**: https://www.smashingmagazine.com/2020/03/accessible-svgs-inclusiveness-beyond-patterns/
+- **Deque University – svg-img-alt axe rule**: https://dequeuniversity.com/rules/axe/4.11/svg-img-alt
+- **Accesify – SVG Accessibility: Icons, Graphics & Screen Reader Friendly**: https://www.accesify.io/blog/svg-accessibility-icons-graphics-screen-reader-friendly/
+- **iamvector – 9 Ways to Enhance Accessibility in SVG Icon Design**: https://iamvector.com/blog/9-ways-to-enhance-accessibility-in-svg-icon-design/
+- **dev.to/accessibly_speaking – How to Make SVGs Accessible: A Short Guide**: https://dev.to/accessibly_speaking/how-to-make-svgs-accessible-a-short-guide-1ope
 - **W3C ARIA**: https://www.w3.org/WAI/ARIA/apg/
 - **WCAG 2.2**: https://www.w3.org/WAI/WCAG22/quickref/
 

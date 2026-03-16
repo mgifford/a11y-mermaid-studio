@@ -8,6 +8,9 @@ Copyright (c) 2026 Mike Gifford
 Based on:
 - Carie Fisher's [Accessible SVGs: Perfect Patterns For Screen Reader Users](https://cariefisher.com/a11y-svg-updated/)
 - Léonie Watson's [Accessible SVG Flowcharts](https://tink.uk/accessible-svg-flowcharts/)
+- Deque's [Creating Accessible SVGs](https://www.deque.com/blog/creating-accessible-svgs/)
+- Smashing Magazine's [Accessible SVGs: Inclusiveness Beyond Patterns](https://www.smashingmagazine.com/2020/03/accessible-svgs-inclusiveness-beyond-patterns/)
+- Deque University's [svg-img-alt axe rule](https://dequeuniversity.com/rules/axe/4.11/svg-img-alt)
 - SVG Specification (W3C)
 - WCAG 2.2 Level AA
 
@@ -397,7 +400,61 @@ describe('SVG Export', () => {
 
 ---
 
-## 12. Version Control & Breaking Changes
+## 12. SVG Deployment Context
+
+The transformation pipeline produces inline SVG that is injected into the DOM. However, the **exported SVG file** may be embedded in several ways, each with different accessibility implications (Deque):
+
+| Deployment | Notes |
+|---|---|
+| **Inline in HTML** | Full Pattern 11 works; `role="img"`, `<title>`, `<desc>`, `aria-labelledby` |
+| **`<img src="...svg">`** | Browser reads the `alt` attribute of `<img>`, not the internal `<title>`; advise users to add descriptive `alt` on the `<img>` element |
+| **`<object data="...svg">`** | Internal `<title>`/`<desc>` exposed; fallback text inside `<object>` recommended |
+| **CSS `background-image`** | Inaccessible for non-decorative content; must not be used |
+
+### `focusable="false"` on Exported SVGs
+
+Add `focusable="false"` to the SVG root before export to prevent the SVG from receiving tab focus in legacy IE/Edge:
+
+```javascript
+svg.setAttribute('focusable', 'false');
+```
+
+This attribute is harmless in modern browsers and prevents a known IE regression where SVG elements unexpectedly enter the tab order.
+
+### Axe `svg-img-alt` Rule Compliance
+
+The Deque University axe rule [`svg-img-alt`](https://dequeuniversity.com/rules/axe/4.11/svg-img-alt) requires:
+
+> SVG elements with `role="img"` must have an alternative text accessible to screen readers.
+
+The transformation pipeline satisfies this rule by:
+1. Setting `role="img"` on the SVG root.
+2. Inserting `<title id="title-{uid}">` as the **first child** of the SVG.
+3. Setting `aria-labelledby` to reference both the title and desc IDs.
+
+If either title or desc is absent, the export must be **blocked** to prevent an axe violation.
+
+---
+
+## 13. Reduced-Motion Support
+
+Exported SVGs that include animations (CSS or SMIL) must honour `prefers-reduced-motion` (Smashing Magazine):
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  svg * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+```
+
+Add this rule to the `<style>` block injected during transformation whenever Mermaid produces animated output.
+
+---
+
+## 14. Version Control & Breaking Changes
 
 ### When Upgrading Mermaid
 
@@ -420,6 +477,9 @@ describe('SVG Export', () => {
 
 - **Carie Fisher's Pattern 11**: https://cariefisher.com/a11y-svg-updated/
 - **Léonie Watson's Flowcharts**: https://tink.uk/accessible-svg-flowcharts/
+- **Deque – Creating Accessible SVGs**: https://www.deque.com/blog/creating-accessible-svgs/
+- **Smashing Magazine – Accessible SVGs: Inclusiveness Beyond Patterns**: https://www.smashingmagazine.com/2020/03/accessible-svgs-inclusiveness-beyond-patterns/
+- **Deque University – svg-img-alt axe rule**: https://dequeuniversity.com/rules/axe/4.11/svg-img-alt
 - **SVG Spec**: https://www.w3.org/TR/SVG2/
 - **WCAG 2.2**: https://www.w3.org/WAI/WCAG22/quickref/
 - **ARIA Spec**: https://www.w3.org/WAI/ARIA/apg/

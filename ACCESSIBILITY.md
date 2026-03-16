@@ -232,6 +232,12 @@ AI agents must treat these as authoritative:
 |-----------|----------|
 | [Léonie Watson — Accessible SVG flowcharts](https://tink.uk/accessible-svg-flowcharts/) | All flowchart rendering decisions |
 | [Carie Fisher — Accessible SVG Patterns](https://cariefisher.com/a11y-svg-updated/) | All SVG accessibility patterns |
+| [Deque — Creating Accessible SVGs](https://www.deque.com/blog/creating-accessible-svgs/) | Choosing the right pattern for inline, img, object, or background-image deployment |
+| [Smashing Magazine — Accessible SVGs: Inclusiveness Beyond Patterns](https://www.smashingmagazine.com/2020/03/accessible-svgs-inclusiveness-beyond-patterns/) | Animated SVG, interactive SVG, and context-dependent decisions |
+| [Deque University — svg-img-alt axe rule](https://dequeuniversity.com/rules/axe/4.11/svg-img-alt) | Ensuring SVG `role="img"` elements always have a text alternative |
+| [Accesify — SVG Accessibility: Icons & Graphics](https://www.accesify.io/blog/svg-accessibility-icons-graphics-screen-reader-friendly/) | SVG icons, `<use>` sprite patterns, decorative vs informative classification |
+| [iamvector — 9 Ways to Enhance Accessibility in SVG Icon Design](https://iamvector.com/blog/9-ways-to-enhance-accessibility-in-svg-icon-design/) | Icon-specific accessibility enhancements |
+| [dev.to/accessibly_speaking — How to Make SVGs Accessible](https://dev.to/accessibly_speaking/how-to-make-svgs-accessible-a-short-guide-1ope) | Introductory reference for title/desc/role patterns |
 | [WCAG 2.2](https://www.w3.org/TR/WCAG22/) | All contrast, keyboard, and semantic decisions |
 | [W3C ARIA Authoring Practices](https://www.w3.org/WAI/ARIA/apg/) | All ARIA attribute decisions |
 | [MERMAID_ACCESSIBILITY_BEST_PRACTICES.md](./MERMAID_ACCESSIBILITY_BEST_PRACTICES.md) | Mermaid-specific authoring rules |
@@ -279,5 +285,11 @@ This is a living document. It will be updated as the project's accessibility pos
 - [TESTING_GAPS.md](./TESTING_GAPS.md) — known testing limitations
 - [Léonie Watson's "Accessible SVG flowcharts"](https://tink.uk/accessible-svg-flowcharts/)
 - [Carie Fisher's "Accessible SVGs: Perfect Patterns For Screen Reader Users"](https://cariefisher.com/a11y-svg-updated/)
+- [Deque's "Creating Accessible SVGs"](https://www.deque.com/blog/creating-accessible-svgs/)
+- [Smashing Magazine's "Accessible SVGs: Inclusiveness Beyond Patterns"](https://www.smashingmagazine.com/2020/03/accessible-svgs-inclusiveness-beyond-patterns/)
+- [Deque University's svg-img-alt axe rule](https://dequeuniversity.com/rules/axe/4.11/svg-img-alt)
+- [Accesify's "SVG Accessibility: Icons, Graphics & Screen Reader Friendly"](https://www.accesify.io/blog/svg-accessibility-icons-graphics-screen-reader-friendly/)
+- [iamvector's "9 Ways to Enhance Accessibility in SVG Icon Design"](https://iamvector.com/blog/9-ways-to-enhance-accessibility-in-svg-icon-design/)
+- [dev.to/accessibly_speaking's "How to Make SVGs Accessible: A Short Guide"](https://dev.to/accessibly_speaking/how-to-make-svgs-accessible-a-short-guide-1ope)
 - [WCAG 2.2](https://www.w3.org/TR/WCAG22/)
 - [W3C ARIA Authoring Practices Guide](https://www.w3.org/WAI/ARIA/apg/)
