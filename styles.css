@@ -465,6 +465,34 @@ button:disabled {
   color: #ffffff;
 }
 
+/*
+ * CSS fallback for SVG elements inside the dark preview pane.
+ * The primary fix renders Mermaid with its built-in dark theme; these rules
+ * act as a safety net for any SVG elements that still use black defaults
+ * (e.g. unthemed text nodes, connector strokes, arrowhead markers).
+ *
+ * Note: CSS `fill` / `stroke` only override SVG *presentation attributes*
+ * when those attributes are absent.  Mermaid's dark theme already sets the
+ * correct colours on most elements, so these rules fire only as a backstop.
+ */
+.preview-pane[id="preview-dark"] svg.dark-mode text:not([fill]) {
+  fill: #e8e8e8;
+}
+
+/* Make sure connector lines and dashed guides are visible on dark backgrounds */
+.preview-pane[id="preview-dark"] svg.dark-mode line:not([stroke]),
+.preview-pane[id="preview-dark"] svg.dark-mode path:not([stroke]) {
+  stroke: #cccccc;
+}
+
+/* Arrowhead markers that use context-fill / context-stroke inherit correctly
+   from the path that references them, so no extra rule is needed there.
+   The rule below catches any plain black fill left on marker children. */
+.preview-pane[id="preview-dark"] svg.dark-mode marker path[fill="#000000"],
+.preview-pane[id="preview-dark"] svg.dark-mode marker path[fill="black"] {
+  fill: #cccccc;
+}
+
 .preview-pane svg {
   max-width: 100%;
   height: auto;

@@ -52,7 +52,8 @@ describe('Random Button Integration Tests', () => {
     // validateAndRender calls displayPreview which writes to both light/dark previews
     expect(appJs).toContain('displayPreview');
     expect(appJs).toContain('lightPreview.innerHTML = contentToDisplay');
-    expect(appJs).toContain('darkPreview.innerHTML = contentToDisplay');
+    // Dark pane uses the dark-themed SVG when available, falling back to the light SVG
+    expect(appJs).toContain('darkPreview.innerHTML = darkContent');
   });
 
   it('should call updateSvgDisplay after preview to show SVG code', () => {

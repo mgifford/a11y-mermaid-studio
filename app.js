@@ -64,7 +64,8 @@ function isDiagramTypeSupported(type) {
 
 const STATE = {
   svgMode: 'beautiful', // 'beautiful' or 'optimized'
-  currentSvg: '', // Raw SVG from Mermaid
+  currentSvg: '', // Raw SVG from Mermaid (light theme)
+  darkSvg: '',    // Dark-themed SVG for dark preview pane
   beautifiedSvg: '', // Formatted version
   optimizedSvg: '', // Optimized version
   userEdited: false, // Tracks whether user has edited the Mermaid source
@@ -223,6 +224,43 @@ async function renderMermaidDiagram(mermaidSource) {
       ? 'XY chart requires the Mermaid xychart plugin; loading failed.'
       : '';
     throw new Error(`Invalid Mermaid syntax: ${baseMessage}${hint ? ` (${hint})` : ''}`);
+  }
+}
+
+/**
+ * Build a copy of the Mermaid source with the dark theme injected.
+ * Strips any existing %%{init: ...}%% directive so ours takes effect.
+ * Used only for rendering the dark-mode preview pane; the canonical
+ * light-themed SVG is stored in STATE.currentSvg for export.
+ *
+ * Note: Only the first %%{init}%% directive (at the start of the source)
+ * is stripped. Multiple directives are extremely rare in practice.
+ */
+function buildDarkThemeSource(mermaidSource) {
+  // Remove an existing %%{init: ...}%% front-matter directive (multiline-safe)
+  const withoutInit = mermaidSource.replace(/^\s*%%\{init:[\s\S]*?\}%%\s*\n?/, '');
+  return `%%{init: {'theme': 'dark'}}%%\n${withoutInit}`;
+}
+
+/**
+ * Render a dark-themed SVG for the dark preview pane.
+ * Returns null (never an empty string) on failure so the caller can fall back
+ * safely via the `|| sizedSvg` guard in validateAndRender.
+ *
+ * Sequential safety: validateAndRender awaits this call before returning, so
+ * concurrent renders with the same element ID cannot occur in normal usage.
+ */
+async function renderDarkModeVersion(mermaidSource, metadata) {
+  try {
+    const darkSource = buildDarkThemeSource(mermaidSource);
+    // Use a separate element ID so Mermaid's cleanup does not interfere with
+    // the light-theme render that used 'mermaid-diagram'.
+    const { svg } = await window.mermaid.render('mermaid-diagram-dark', darkSource);
+    const accessibleDarkSvg = applyAccessibilityTransformations(svg, metadata);
+    return ensureViewBox(accessibleDarkSvg) || null;
+  } catch (e) {
+    console.warn('[renderDarkModeVersion] Failed to render dark SVG, falling back to light:', e);
+    return null;
   }
 }
 
@@ -2348,6 +2386,10 @@ async function validateAndRender() {
     // Ensure viewBox so the preview has measurable dimensions
     const sizedSvg = ensureViewBox(accessibleSvg);
     console.log('[validateAndRender] After ensureViewBox, SVG length:', sizedSvg.length);
+
+    // Render a dark-themed version for the dark preview pane (non-blocking; falls back to light on failure)
+    STATE.darkSvg = await renderDarkModeVersion(mermaidSource, metadata) || sizedSvg;
+    console.log('[validateAndRender] Dark SVG length:', STATE.darkSvg.length);
     
     // Display preview
     console.log('[validateAndRender] Calling displayPreview with SVG length:', sizedSvg.length);
@@ -2775,8 +2817,11 @@ function displayPreview(svgString) {
   }
   
   if (darkPreview) {
-    darkPreview.innerHTML = contentToDisplay;
-    // Add dark mode class for styling
+    // Use the dark-themed SVG if available (rendered with Mermaid dark theme);
+    // fall back to the light SVG so the pane is never empty.
+    const darkContent = svgString ? (STATE.darkSvg || contentToDisplay) : placeholderMessage;
+    darkPreview.innerHTML = darkContent;
+    // Keep the class for any residual CSS overrides (e.g. forced-colors mode)
     const svg = darkPreview.querySelector('svg');
     if (svg) svg.classList.add('dark-mode');
     console.log('[displayPreview] Updated dark preview, innerHTML length:', darkPreview.innerHTML.length);
@@ -2786,6 +2831,7 @@ function displayPreview(svgString) {
 
   // Store raw SVG and clear cached versions
   STATE.currentSvg = svgString;
+  if (!svgString) STATE.darkSvg = '';
   STATE.beautifiedSvg = '';
   STATE.optimizedSvg = '';
   
