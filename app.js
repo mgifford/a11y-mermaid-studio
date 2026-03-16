@@ -524,12 +524,22 @@ function applyFlowchartSemantics(svg) {
   }
   
   console.log(`[Flowchart] Found ${nodeGroups.length} nodes`);
-  
-  // Create a wrapper group with role="list"
-  const listGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-  listGroup.setAttribute('role', 'list');
-  listGroup.setAttribute('aria-label', 'Flowchart nodes');
-  
+
+  // Find the shared parent container of all nodes (Mermaid places them all inside a
+  // single <g class="nodes"> element).  Walk up from the first node to the nearest
+  // ancestor that is a direct child of the flowchart root group, then mark it as
+  // role="list" so every role="listitem" descendant has the required parent role.
+  // This mirrors the approach used in applyMindmapSemantics and satisfies the
+  // aria-required-parent rule without altering Mermaid's visual layout.
+  let listContainer = nodeGroups[0].parentElement;
+  while (listContainer && listContainer.parentElement !== svg) {
+    listContainer = listContainer.parentElement;
+  }
+  if (listContainer) {
+    listContainer.setAttribute('role', 'list');
+    listContainer.setAttribute('aria-label', 'Flowchart nodes');
+  }
+
   // Process each node
   nodeGroups.forEach((node, index) => {
     // Add role="listitem" to the node group
@@ -582,10 +592,6 @@ function applyFlowchartSemantics(svg) {
   markers.forEach(marker => {
     marker.setAttribute('aria-hidden', 'true');
   });
-  
-  // Note: We're not wrapping nodes in the list group to preserve Mermaid's layout
-  // Instead, we're adding role="listitem" directly to existing node groups
-  // This is a pragmatic approach that preserves visual layout while adding semantics
 }
 
 /**

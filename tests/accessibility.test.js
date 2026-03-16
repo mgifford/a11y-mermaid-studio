@@ -66,6 +66,25 @@ describe('Accessibility Tests', () => {
     expect(true).toBe(true);
   });
 
+  // ── Flowchart semantics (aria-required-parent: listitem must have list parent) ──
+
+  it('applyFlowchartSemantics should assign role="list" to the nodes container', () => {
+    // Regression: WCAG 1.3.1 / aria-required-parent violation.
+    // role="listitem" nodes must be contained by a role="list" parent.
+    // The fix walks up from the first node to its nearest SVG-child ancestor and
+    // sets role="list" on it, matching the pattern used in applyMindmapSemantics.
+    expect(appJs).toContain('function applyFlowchartSemantics(svg)');
+    // Must find the parent container and mark it as role="list"
+    expect(appJs).toContain("listContainer.setAttribute('role', 'list')");
+    expect(appJs).toContain("listContainer.setAttribute('aria-label', 'Flowchart nodes')");
+  });
+
+  it('applyFlowchartSemantics should not leave an unused listGroup variable', () => {
+    // Regression: the old code created a listGroup element but never inserted it,
+    // which was both dead code and misleading.  Ensure it is gone.
+    expect(appJs).not.toContain('const listGroup');
+  });
+
   it('should hide decorative elements from a11y tree', () => {
     // Requirement: aria-hidden or role="presentation" for decorative shapes
     expect(true).toBe(true);
