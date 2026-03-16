@@ -41,7 +41,8 @@ describe('Edit Workflow Tests', () => {
   it('should update both light and dark previews when Mermaid is edited', () => {
     // displayPreview writes to both preview panes
     expect(appJs).toContain('lightPreview.innerHTML = contentToDisplay');
-    expect(appJs).toContain('darkPreview.innerHTML = contentToDisplay');
+    // Dark pane uses the dark-themed SVG when available, falling back to the light SVG
+    expect(appJs).toContain('darkPreview.innerHTML = darkContent');
   });
 
   it('should update SVG code display (Beautiful/Optimized) when preview updates', () => {
