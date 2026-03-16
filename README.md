@@ -204,6 +204,12 @@ npm run pa11y  # Additional accessibility validation
 **Normative References:**
 - [Léonie Watson's "Accessible SVG flowcharts"](https://tink.uk/accessible-svg-flowcharts/)
 - [Carie Fisher's "Accessible SVGs: Perfect Patterns For Screen Reader Users"](https://cariefisher.com/a11y-svg-updated/)
+- [Deque's "Creating Accessible SVGs"](https://www.deque.com/blog/creating-accessible-svgs/)
+- [Smashing Magazine's "Accessible SVGs: Inclusiveness Beyond Patterns"](https://www.smashingmagazine.com/2020/03/accessible-svgs-inclusiveness-beyond-patterns/)
+- [Deque University's svg-img-alt axe rule](https://dequeuniversity.com/rules/axe/4.11/svg-img-alt)
+- [Accesify's "SVG Accessibility: Icons, Graphics & Screen Reader Friendly"](https://www.accesify.io/blog/svg-accessibility-icons-graphics-screen-reader-friendly/)
+- [iamvector's "9 Ways to Enhance Accessibility in SVG Icon Design"](https://iamvector.com/blog/9-ways-to-enhance-accessibility-in-svg-icon-design/)
+- [dev.to/accessibly_speaking's "How to Make SVGs Accessible: A Short Guide"](https://dev.to/accessibly_speaking/how-to-make-svgs-accessible-a-short-guide-1ope)
 
 **Project Specifications:**
 - [MERMAID_ACCESSIBILITY_BEST_PRACTICES.md](./MERMAID_ACCESSIBILITY_BEST_PRACTICES.md)
@@ -253,4 +259,6 @@ See `AGENTS.md` for contribution expectations. All accessibility regressions are
 - Léonie Watson (accessibility patterns)
 - Carie Fisher (pattern testing)
 - Ashley Sheridan (flowchart semantics)
+- Deque (multi-context accessible SVG patterns and axe rules)
+- Smashing Magazine (animated SVG and context-aware accessibility)
 - W3C WAI (ARIA and WCAG standards)
