@@ -415,6 +415,164 @@ function validateSvgHasContent(svgString) {
 }
 
 /**
+ * Validate SVG accessibility semantics against normative best practices.
+ *
+ * Checks:
+ *  – Carie Fisher Pattern 11 (https://cariefisher.com/a11y-svg-updated/)
+ *    • role="img" on SVG root
+ *    • <title> element with a non-empty id
+ *    • <desc> element with a non-empty id
+ *    • aria-labelledby referencing both title and desc IDs
+ *    • xmlns attribute for standalone SVG usage
+ *    • No duplicate IDs within the SVG
+ *  – Léonie Watson flowchart pattern (https://tink.uk/accessible-svg-flowcharts/)
+ *    • role="list" container wrapping all flowchart nodes
+ *    • role="listitem" on each node group
+ *    • Per-node <title> element for individual accessible names
+ *    • Decorative shapes hidden with aria-hidden="true"
+ *    • Edge/arrow groups hidden with aria-hidden="true"
+ *
+ * Returns { valid: boolean, issues: string[], warnings: string[] }
+ * `issues`   – failures that break accessibility (should block or prominently warn)
+ * `warnings` – degraded accessibility (should advise)
+ */
+function validateSvgSemantics(svgString) {
+  const issues = [];
+  const warnings = [];
+
+  if (!svgString) {
+    return { valid: false, issues: ['SVG string is empty'], warnings };
+  }
+
+  let doc, svg;
+  try {
+    const parser = new DOMParser();
+    doc = parser.parseFromString(svgString, 'image/svg+xml');
+    svg = doc.documentElement;
+  } catch (e) {
+    return { valid: false, issues: [`SVG could not be parsed: ${e.message}`], warnings };
+  }
+
+  // Abort early on XML parse errors
+  const parserError = doc.querySelector('parsererror');
+  if (parserError) {
+    return { valid: false, issues: ['SVG has XML parsing errors'], warnings };
+  }
+
+  // ── Pattern 11: role="img" ──────────────────────────────────────────────────
+  if (svg.getAttribute('role') !== 'img') {
+    issues.push('SVG root is missing role="img" (Carie Fisher Pattern 11)');
+  }
+
+  // ── Pattern 11: <title> ─────────────────────────────────────────────────────
+  const titleEl = svg.querySelector(':scope > title');
+  if (!titleEl) {
+    issues.push('SVG is missing a <title> element as a direct child of <svg> (Pattern 11)');
+  } else {
+    if (!titleEl.id) {
+      issues.push('<title> element has no id attribute (required for aria-labelledby)');
+    }
+    if (!titleEl.textContent.trim()) {
+      issues.push('<title> element is empty (must have descriptive text)');
+    }
+  }
+
+  // ── Pattern 11: <desc> ──────────────────────────────────────────────────────
+  const descEl = svg.querySelector(':scope > desc');
+  if (!descEl) {
+    warnings.push('SVG is missing a <desc> element as a direct child of <svg> (Pattern 11 recommends one)');
+  } else {
+    if (!descEl.id) {
+      issues.push('<desc> element has no id attribute (required for aria-labelledby)');
+    }
+    if (!descEl.textContent.trim()) {
+      warnings.push('<desc> element is empty (should contain a longer description)');
+    }
+  }
+
+  // ── Pattern 11: aria-labelledby ────────────────────────────────────────────
+  const labelledBy = svg.getAttribute('aria-labelledby');
+  if (!labelledBy) {
+    issues.push('SVG root is missing aria-labelledby (Carie Fisher Pattern 11)');
+  } else {
+    const labelIds = labelledBy.trim().split(/\s+/);
+    if (titleEl && titleEl.id && !labelIds.includes(titleEl.id)) {
+      issues.push('aria-labelledby does not reference the <title> id');
+    }
+    if (descEl && descEl.id && !labelIds.includes(descEl.id)) {
+      warnings.push('aria-labelledby does not reference the <desc> id (recommended by Pattern 11)');
+    }
+  }
+
+  // ── xmlns for standalone SVG ────────────────────────────────────────────────
+  if (!svg.getAttribute('xmlns')) {
+    warnings.push('SVG is missing xmlns="http://www.w3.org/2000/svg" (required for standalone and <img> usage)');
+  }
+
+  // ── Duplicate IDs ───────────────────────────────────────────────────────────
+  const allIdEls = svg.querySelectorAll('[id]');
+  const idCounts = {};
+  allIdEls.forEach(el => {
+    const id = el.id;
+    if (id) idCounts[id] = (idCounts[id] || 0) + 1;
+  });
+  const duplicates = Object.entries(idCounts).filter(([, count]) => count > 1).map(([id]) => id);
+  if (duplicates.length > 0) {
+    issues.push(`SVG contains duplicate IDs: ${duplicates.join(', ')} (IDs must be unique)`);
+  }
+
+  // ── Flowchart-specific: Léonie Watson pattern ───────────────────────────────
+  const isFlowchart = !!svg.querySelector('[id^="flowchart-"]');
+  if (isFlowchart) {
+    // role="list" container
+    const listContainer = svg.querySelector('[role="list"]');
+    if (!listContainer) {
+      issues.push('Flowchart is missing a role="list" container (Léonie Watson accessible flowchart pattern)');
+    }
+
+    // role="listitem" on nodes
+    const nodeGroups = svg.querySelectorAll('g.node');
+    if (nodeGroups.length > 0) {
+      const nodesWithListitem = [...nodeGroups].filter(n => n.getAttribute('role') === 'listitem');
+      if (nodesWithListitem.length === 0) {
+        issues.push('Flowchart nodes are missing role="listitem" (Léonie Watson accessible flowchart pattern)');
+      } else if (nodesWithListitem.length < nodeGroups.length) {
+        warnings.push(`Only ${nodesWithListitem.length} of ${nodeGroups.length} flowchart nodes have role="listitem"`);
+      }
+
+      // Per-node <title>
+      const nodesWithTitle = [...nodeGroups].filter(n => n.querySelector('title'));
+      if (nodesWithTitle.length === 0) {
+        issues.push('Flowchart nodes are missing per-node <title> elements (required for individual accessible names)');
+      } else if (nodesWithTitle.length < nodeGroups.length) {
+        warnings.push(`Only ${nodesWithTitle.length} of ${nodeGroups.length} flowchart nodes have a <title> element`);
+      }
+
+      // Decorative shapes inside nodes should be aria-hidden
+      let unhiddenShapes = 0;
+      nodeGroups.forEach(node => {
+        node.querySelectorAll('rect, circle, ellipse, polygon, path').forEach(shape => {
+          if (shape.getAttribute('aria-hidden') !== 'true') unhiddenShapes++;
+        });
+      });
+      if (unhiddenShapes > 0) {
+        warnings.push(`${unhiddenShapes} decorative shape(s) inside flowchart nodes are not hidden from the accessibility tree (add aria-hidden="true")`);
+      }
+    }
+
+    // Edges should be aria-hidden
+    const visibleEdges = [...svg.querySelectorAll('g.edgePath, g.edgeLabel')].filter(
+      edge => edge.getAttribute('aria-hidden') !== 'true'
+    );
+    if (visibleEdges.length > 0) {
+      warnings.push(`${visibleEdges.length} flowchart edge group(s) are not hidden from the accessibility tree (add aria-hidden="true")`);
+    }
+  }
+
+  return { valid: issues.length === 0, issues, warnings };
+}
+
+/**
  * Update the render help panel with lint/parse hints
  */
 function setRenderHelp(items) {
@@ -2901,6 +3059,21 @@ function handleExport() {
     }
     svgString = new XMLSerializer().serializeToString(svg);
   }
+
+  // Validate SVG semantics before exporting and surface any issues to the user
+  const semantics = validateSvgSemantics(svgString);
+  if (!semantics.valid) {
+    const issueList = semantics.issues.map(i => `• ${i}`).join('\n');
+    showError(`Export blocked: the SVG has accessibility issues that must be fixed:\n${issueList}`);
+    console.warn('[Export] SVG semantic validation failed:', semantics.issues);
+    return;
+  }
+  if (semantics.warnings.length > 0) {
+    const warnList = semantics.warnings.map(w => `• ${w}`).join('\n');
+    console.warn('[Export] SVG semantic warnings:', semantics.warnings);
+    showToast(`SVG exported with ${semantics.warnings.length} accessibility warning(s). See console for details.`, 'info', 6000);
+  }
+
   const blob = new Blob([svgString], { type: 'image/svg+xml' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -2908,8 +3081,10 @@ function handleExport() {
   a.download = 'diagram-accessible.svg';
   a.click();
   URL.revokeObjectURL(url);
-  
-  showSuccess('SVG exported successfully');
+
+  if (semantics.warnings.length === 0) {
+    showSuccess('SVG exported successfully');
+  }
 }
 
 /** Copy helper */
