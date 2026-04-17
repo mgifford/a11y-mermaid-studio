@@ -12,10 +12,15 @@
   --color-border: #d0d0d0;
   --color-primary: #0066cc;
   --color-primary-hover: #0052a3;
-  --color-success: #22863a;
+  --color-success: #1a7a32;  /* darkened from #22863a for 4.5:1 on surface bg */
   --color-error: #cb2431;
   --color-info: #1f6feb;
   --color-focus: #0066cc;
+  --color-muted: #595959;
+  --color-accent: #5a4fcf;
+  --color-accent-bg: #eeeaf8;
+  --color-accent-border: #6b5fd4;
+  --color-surface: #f8f9fa;
   
   --space-xs: 0.25rem;
   --space-sm: 0.5rem;
@@ -42,6 +47,11 @@
     --color-primary-hover: #66b3ff;
     --color-success: #34d399;
     --color-error: #f85149;
+    --color-muted: #aaaaaa;
+    --color-accent: #a89ef5;
+    --color-accent-bg: #1e1a2e;
+    --color-accent-border: #6b63c4;
+    --color-surface: #2a2a2a;
   }
 }
 
@@ -53,6 +63,11 @@ html[data-theme="dark"] {
   --color-primary-hover: #66b3ff;
   --color-success: #34d399;
   --color-error: #f85149;
+  --color-muted: #aaaaaa;
+  --color-accent: #a89ef5;
+  --color-accent-bg: #1e1a2e;
+  --color-accent-border: #6b63c4;
+  --color-surface: #2a2a2a;
 }
 
 * {
@@ -580,6 +595,62 @@ footer {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border-width: 0;
+}
+
+/* Narrative text styles (theme-aware, WCAG AA compliant) */
+.narrative-muted {
+  color: var(--color-muted);
+  font-size: 0.9em;
+  margin-top: 1rem;
+}
+
+/* Preview placeholder (shown before first render) */
+.preview-placeholder {
+  color: var(--color-muted);
+  font-style: italic;
+  text-align: center;
+  padding: 2rem;
+}
+
+/* AI narrative panel classes (replaces hard-coded inline styles) */
+.ai-approval-notice {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-success);
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin-top: 1rem;
+  font-size: 0.9em;
+}
+
+.ai-enhancement-section {
+  margin-top: 1.5rem;
+  border-top: 2px solid var(--color-accent-border);
+  padding-top: 1rem;
+}
+
+.ai-enhancement-heading {
+  color: var(--color-accent);
+  margin: 0 0 0.5rem 0;
+  font-size: 0.95rem;
+}
+
+.ai-original-details {
+  margin-top: 1rem;
+}
+
+.ai-original-summary {
+  cursor: pointer;
+  color: var(--color-muted);
+  font-size: 0.85em;
+}
+
+.ai-original-content {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
 }
 
 /* Toast notifications */
