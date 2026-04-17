@@ -1135,15 +1135,7 @@ async function generateDiagramNarrative(mermaidSource, metadata) {
         if (aiEnhancement === 'Narrative is accurate.') {
           // AI approved the narrative
           const approvalHtml = `
-            <div style="
-              background: #d4edda;
-              border: 1px solid #c3e6cb;
-              color: #155724;
-              padding: 0.75rem;
-              border-radius: 4px;
-              margin-top: 1rem;
-              font-size: 0.9em;
-            ">
+            <div class="ai-approval-notice">
               <strong>✓ AI Review:</strong> Narrative is accurate.
             </div>
           `;
@@ -1151,17 +1143,17 @@ async function generateDiagramNarrative(mermaidSource, metadata) {
         } else {
           // AI suggested improvements
           const enhancedHtml = `
-            <div style="margin-top: 1.5rem; border-top: 2px solid #667eea; padding-top: 1rem;">
-              <h4 style="color: #667eea; margin: 0 0 0.5rem 0; font-size: 0.95rem;">
+            <div class="ai-enhancement-section">
+              <h4 class="ai-enhancement-heading">
                 🤖 AI-Enhanced Narrative
               </h4>
               ${aiEnhancement}
             </div>
-            <details style="margin-top: 1rem;">
-              <summary style="cursor: pointer; color: #666; font-size: 0.85em;">
+            <details class="ai-original-details">
+              <summary class="ai-original-summary">
                 Show original structural narrative
               </summary>
-              <div style="margin-top: 0.5rem; padding: 0.75rem; background: #f8f9fa; border-radius: 4px;">
+              <div class="ai-original-content">
                 ${structuralNarrative}
               </div>
             </details>
@@ -1275,7 +1267,7 @@ function generateGenericNarrative(source, diagramType) {
   narrative += '</ul>\n';
   
   // Add helpful note about narrative generation
-  narrative += `<p style="color: #666; font-size: 0.9em; margin-top: 1rem;">`;
+  narrative += `<p class="narrative-muted">`;
   narrative += `<em>Note: This diagram type does not yet have a detailed narrative generator. `;
   narrative += `The SVG will still be rendered with accessibility attributes (title, description, role).</em>`;
   narrative += `</p>`;
@@ -1443,7 +1435,7 @@ function generateFlowchartNarrative(source) {
   narrative += '</ol>\n';
   
   // Add summary stats
-  narrative += `<p style="color: #666; font-size: 0.9em; margin-top: 1rem;">`;
+  narrative += `<p class="narrative-muted">`;
   narrative += `<strong>Structure:</strong> ${nodes.size} node${nodes.size !== 1 ? 's' : ''}, `;
   narrative += `${edges.length} connection${edges.length !== 1 ? 's' : ''}`;
   const questions = Array.from(nodes.values()).filter(n => n.isQuestion).length;
@@ -1493,7 +1485,7 @@ function generatePieNarrative(source) {
   });
   
   narrative += '</ul>\n';
-  narrative += `<p style="color: #666; font-size: 0.9em;"><strong>Total:</strong> ${total}</p>`;
+  narrative += `<p class="narrative-muted"><strong>Total:</strong> ${total}</p>`;
   
   return narrative;
 }
@@ -2805,7 +2797,7 @@ function displayPreview(svgString) {
   const darkPreview = document.getElementById('preview-dark');
   
   // Show placeholder message when empty
-  const placeholderMessage = '<p style="color: #666; font-style: italic; text-align: center; padding: 2rem;">Render a diagram to see a preview</p>';
+  const placeholderMessage = '<p class="preview-placeholder">Render a diagram to see a preview</p>';
   const contentToDisplay = svgString || placeholderMessage;
   
   // Always render fresh—previews are never cached; always written directly to DOM

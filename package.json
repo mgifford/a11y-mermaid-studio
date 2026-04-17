@@ -9,6 +9,7 @@
     "test:regression": "vitest run tests/regression.test.js",
     "test:features": "vitest run tests/features.test.js",
     "test:accessibility": "vitest run tests/accessibility.test.js",
+    "test:contrast": "vitest run tests/contrast.test.js",
     "test:ui": "vitest run tests/ui.test.js",
     "serve": "python3 -m http.server 8008",
     "axe": "axe http://localhost:8008 --output violations",
@@ -28,6 +29,7 @@
   "devDependencies": {
     "@axe-core/cli": "^4.8.0",
     "acorn": "^8.15.0",
+    "axe-core": "^4.11.3",
     "jsdom": "^23.0.0",
     "pa11y": "^7.0.0",
     "vitest": "^1.0.0"
