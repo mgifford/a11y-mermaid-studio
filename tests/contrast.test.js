@@ -23,7 +23,7 @@ const stylesCSS = readFileSync(path.resolve(process.cwd(), 'styles.css'), 'utf8'
 // ─── Contrast maths ───────────────────────────────────────────────────────────
 
 /**
- * Parse a 6-digit hex colour string to an {r, g, b} object.
+ * Parse a 6-digit hex color string to an {r, g, b} object.
  * Leading "#" is optional.
  */
 function hexToRgb(hex) {
@@ -50,7 +50,7 @@ function linearize(channel) {
 }
 
 /**
- * Calculate the relative luminance of a hex colour per WCAG 2.x.
+ * Calculate the relative luminance of a hex color per WCAG 2.x.
  */
 function relativeLuminance(hex) {
   const { r, g, b } = hexToRgb(hex);
@@ -73,7 +73,7 @@ function contrastRatio(fg, bg) {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
-// ─── Theme colour tokens ───────────────────────────────────────────────────────
+// ─── Theme color tokens ───────────────────────────────────────────────────────
 
 const LIGHT = {
   bg:            '#ffffff',

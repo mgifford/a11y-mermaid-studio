@@ -12,7 +12,7 @@
   --color-border: #d0d0d0;
   --color-primary: #0066cc;
   --color-primary-hover: #0052a3;
-  --color-success: #1a7a32;
+  --color-success: #1a7a32;  /* darkened from #22863a for 4.5:1 on surface bg */
   --color-error: #cb2431;
   --color-info: #1f6feb;
   --color-focus: #0066cc;
